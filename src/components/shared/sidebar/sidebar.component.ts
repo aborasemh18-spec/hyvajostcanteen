@@ -11,7 +11,7 @@ import { AuthService } from '../../../services/auth.service';
   host: {
     '[class.w-64]': '!isCollapsed()',
     '[class.w-20]': 'isCollapsed()',
-    'class': 'bg-gray-800 text-gray-200 flex flex-col flex-shrink-0 transition-all duration-300 ease-in-out'
+    'class': 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 flex flex-col flex-shrink-0 transition-all duration-300 ease-in-out border-r border-gray-200 dark:border-gray-700 shadow-sm z-20 h-full'
   }
 })
 export class SidebarComponent {
