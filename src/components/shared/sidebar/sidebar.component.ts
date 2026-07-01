@@ -23,6 +23,34 @@ export class SidebarComponent {
     return user && 'employeeId' in user && user.employeeId === 'admin01';
   });
 
+  isAdmin = computed(() => {
+    const user = this.currentUser();
+    return user && 'role' in user && user.role === 'admin';
+  });
+
+  isCanteenManager = computed(() => {
+    const user = this.currentUser();
+    return user && 'role' in user && user.role === 'canteen manager';
+  });
+
+  isContractor = computed(() => {
+    const user = this.currentUser();
+    return user && 'contractorId' in user;
+  });
+
+  isEmployee = computed(() => {
+    const user = this.currentUser();
+    return user && 'role' in user && (user.role === 'employee' || user.role === 'contractual employee');
+  });
+
+  getEmployeeDashboardRoute = computed(() => {
+    const user = this.currentUser();
+    if (user && 'role' in user && user.role === 'contractual employee') {
+      return '/contractual-employee';
+    }
+    return '/employee';
+  });
+
   logout = output<void>();
   isCollapsed = signal(false);
 
