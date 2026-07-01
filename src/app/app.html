@@ -1,11 +1,38 @@
 @if (currentUser()) {
-  <div class="flex h-screen bg-gray-100 dark:bg-gray-900">
+  <div class="flex h-screen bg-gray-100 dark:bg-gray-900 overflow-hidden relative">
     @if (showSidebar()) {
-      <app-sidebar (logout)="onLogout()"></app-sidebar>
+      <!-- Desktop Sidebar -->
+      <div class="hidden md:flex h-full">
+        <app-sidebar (logout)="onLogout()"></app-sidebar>
+      </div>
+
+      <!-- Mobile Sidebar Drawer -->
+      <div 
+        class="md:hidden fixed inset-0 z-50 transition-all duration-300"
+        [class.pointer-events-none]="!isSidebarOpenMobile()"
+        [class.opacity-0]="!isSidebarOpenMobile()"
+        [class.opacity-100]="isSidebarOpenMobile()"
+      >
+        <!-- Backdrop -->
+        <div 
+          class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm"
+          (click)="closeSidebarMobile()"
+        ></div>
+        
+        <!-- Sidebar Content Container -->
+        <div 
+          class="absolute inset-y-0 left-0 w-72 bg-white dark:bg-gray-800 shadow-2xl transition-transform duration-300 ease-in-out transform"
+          [class.-translate-x-full]="!isSidebarOpenMobile()"
+          [class.translate-x-0]="isSidebarOpenMobile()"
+        >
+          <app-sidebar (logout)="onLogout()" (click)="$event.stopPropagation()"></app-sidebar>
+        </div>
+      </div>
     }
-    <div class="main-content flex-1 flex flex-col h-screen min-w-0 overflow-hidden w-full">
-        <app-header (logout)="onLogout()"></app-header>
-        <div class="flex-1 overflow-y-auto w-full">
+
+    <div class="main-content flex-1 flex flex-col h-screen min-w-0 overflow-hidden w-full relative">
+        <app-header (logout)="onLogout()" (menuToggle)="toggleSidebarMobile()"></app-header>
+        <div class="flex-1 overflow-y-auto w-full relative">
           <router-outlet></router-outlet>
         </div>
     </div>

@@ -1,4 +1,4 @@
-import { Component, inject, computed } from '@angular/core';
+import { Component, inject, computed, signal } from '@angular/core';
 import { RouterOutlet, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { SidebarComponent } from '../components/shared/sidebar/sidebar.component';
@@ -15,6 +15,8 @@ export class App {
   router = inject(Router);
   currentUser = this.authService.currentUser;
   
+  isSidebarOpenMobile = signal(false);
+
   showSidebar = computed(() => {
     const user = this.currentUser();
     if (!user) return false;
@@ -32,6 +34,14 @@ export class App {
     
     return false;
   });
+
+  toggleSidebarMobile() {
+    this.isSidebarOpenMobile.update(v => !v);
+  }
+
+  closeSidebarMobile() {
+    this.isSidebarOpenMobile.set(false);
+  }
 
   onLogout() {
     this.authService.logout();

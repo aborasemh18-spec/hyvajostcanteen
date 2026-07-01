@@ -19,7 +19,7 @@
         }
 
         <!-- App Title -->
-        <span class="text-xl font-bold text-gray-800 dark:text-white">
+        <span class="text-xl font-bold text-gray-800 dark:text-white truncate max-w-[150px] sm:max-w-none">
           @if (currentUser(); as user) {
             @if ('role' in user) {
               {{ user.role | titlecase }} Portal
