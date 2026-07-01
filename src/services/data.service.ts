@@ -93,24 +93,15 @@ export class DataService implements OnDestroy {
   );
 
   // Computed totals
-  totalIssuedCoupons = computed(() => this._coupons().length);
+  totalIssuedCoupons = computed(() => this._coupons().filter(c => !c.isGuestCoupon).length);
   totalRedeemedCoupons = computed(() => {
 
     const couponRedeemed =
       this._coupons()
-        .filter(c => c.status === 'redeemed')
+        .filter(c => c.status === 'redeemed' && !c.isGuestCoupon)
         .length;
   
-    const directRedeemedGuests =
-      this._guestCouponRequests()
-        .filter(
-          r =>
-            r.requestedBy === 'canteen_manager' &&
-            r.status === 'redeemed'
-        )
-        .length;
-  
-    return couponRedeemed + directRedeemedGuests;
+    return couponRedeemed;
   
   });
 
@@ -129,20 +120,11 @@ export class DataService implements OnDestroy {
       this._coupons().filter(
         c =>
           c.status === 'redeemed' &&
+          !c.isGuestCoupon &&
           c.redeemDate?.startsWith(todayStr)
       ).length;
   
-    const directRedeemedGuests =
-      this._guestCouponRequests()
-        .filter(
-          r =>
-            r.requestedBy === 'canteen_manager' &&
-            r.status === 'redeemed' &&
-            r.servedDate?.startsWith(todayStr)
-        )
-        .length;
-  
-    return couponRedeemed + directRedeemedGuests;
+    return couponRedeemed;
   
   });
 
@@ -715,8 +697,17 @@ export class DataService implements OnDestroy {
     }
   }
 
+  private isSyncingNotifications = false;
+  private pendingNotificationSync = false;
+
   // संपूर्ण notifications collection sync करणे
   private async syncAllNotificationsToDatabase() {
+    if (this.isSyncingNotifications) {
+      this.pendingNotificationSync = true;
+      return;
+    }
+    this.isSyncingNotifications = true;
+    this.pendingNotificationSync = false;
     try {
       const notifs = this._notifications();
       await this.notificationRepository.upsertMany(notifs);
@@ -724,6 +715,11 @@ export class DataService implements OnDestroy {
       await this.notificationRepository.deleteManyNotIn(activeIds);
     } catch (err) {
       console.error('Error syncing notifications to Supabase:', err);
+    } finally {
+      this.isSyncingNotifications = false;
+      if (this.pendingNotificationSync) {
+        setTimeout(() => this.syncAllNotificationsToDatabase(), 50);
+      }
     }
   }
   async generateQrPool(quantity: number) {
@@ -1595,7 +1591,20 @@ if (
               )
             );
 
-            // Fallback removed
+            // Update Guest Coupon Request status to redeemed
+            const requestToUpdate = this._guestCouponRequests().find(r => r.generatedCouponId === sbCoupon.couponId);
+            if (requestToUpdate) {
+              const updatedRequest = {
+                ...requestToUpdate,
+                status: 'redeemed' as const,
+                servedDate: updatedCoupon.redeemDate
+              };
+              await this.guestCouponRequestRepository.upsert(updatedRequest);
+              
+              this._guestCouponRequests.update(reqs => 
+                reqs.map(r => r.id === updatedRequest.id ? updatedRequest : r)
+              );
+            }
 
             return { success: true, message: displayMessage };
           }
@@ -1680,17 +1689,13 @@ if (
         (u) => u.id === couponToRedeem.sharedByEmployeeId
       );
 
-      const guestInfo = couponToRedeem.guestName
-        ? ` for ${couponToRedeem.guestName}${
-            couponToRedeem.guestCompany
-              ? ` (${couponToRedeem.guestCompany})`
-              : ''
-          }`
-        : '';
-
-      const successMessage = `Guest coupon redeemed successfully${guestInfo} (requested by ${
-        sharingEmployee?.name || 'Unknown'
-      }).`;
+      const hostName = sharingEmployee?.name || 'Unknown';
+      const guestName = couponToRedeem.guestName || 'Unknown';
+      const guestCompany = couponToRedeem.guestCompany || 'N/A';
+      const couponType = couponToRedeem.couponType || 'Unknown';
+      
+      const successMessage = `GUEST_PASS_REDEEMED|${guestName}|${guestCompany}|${hostName}|${couponType}`;
+      const displayMessage = `Guest Pass Redeemed for ${guestName} (${guestCompany}) (requested by ${hostName}).`;
 
       this._coupons.update((coupons) =>
         coupons.map((c) =>
@@ -1705,7 +1710,35 @@ if (
       );
       this.syncAllCouponsToDatabase();
 
-      return { success: true, message: successMessage };
+      // Update Guest Coupon Request status to redeemed
+      const requestToUpdate = this._guestCouponRequests().find(r => r.generatedCouponId === couponToRedeem.couponId);
+      if (requestToUpdate) {
+        const updatedRequest = {
+          ...requestToUpdate,
+          status: 'redeemed' as const,
+          servedDate: new Date().toISOString()
+        };
+        this._guestCouponRequests.update(reqs => 
+          reqs.map(r => r.id === updatedRequest.id ? updatedRequest : r)
+        );
+        this.syncAllGuestCouponRequestsToDatabase();
+      }
+
+      // Record punch event
+      const punchEventId = `CODE-${Date.now()}`;
+      const newPunchEvent: PunchEvent = {
+        id: punchEventId,
+        employeeId: couponToRedeem.sharedByEmployeeId || 0,
+        resultType: 'redeemed',
+        message: successMessage,
+        createdAt: new Date().toISOString()
+      };
+      
+      this.punchEventRepository.upsert(newPunchEvent).catch(err => {
+        console.error('Failed to save guest punch event', err);
+      });
+
+      return { success: true, message: displayMessage };
     }
 
     if (!couponToRedeem.employeeId) {

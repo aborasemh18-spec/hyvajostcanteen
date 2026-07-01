@@ -44,6 +44,10 @@ export class AdminDashboardComponent {
   lifetimeRedeemed = this.dataService.totalRedeemedCoupons;
   todaysIssued = this.dataService.todaysIssuedCoupons;
   todaysRedeemed = this.dataService.todaysRedeemedCoupons;
+  
+  lifetimeGuestPasses = computed(() => 
+    this.dataService.coupons().filter(c => c.isGuestCoupon).length
+  );
 
   permanentEmployeeCount = computed(() =>
     this.dataService

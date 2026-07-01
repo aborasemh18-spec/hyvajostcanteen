@@ -36,7 +36,7 @@ export class NotificationRepository {
       const row = this.mapToRow(notification);
       const { error } = await this.supabaseService.client
         .from('notifications' as any)
-        .upsert(row as any);
+        .upsert(row as any, { onConflict: 'id' });
       if (error) throw error;
     } catch (err) {
       console.error(`Supabase upsert notification with ID ${notification.id} failed:`, err);
@@ -53,10 +53,11 @@ export class NotificationRepository {
     }
     try {
       if (notifications.length === 0) return;
-      const rows = notifications.map((n) => this.mapToRow(n));
+      const uniqueNotifications = Array.from(new Map(notifications.map(n => [n.id, n])).values());
+      const rows = uniqueNotifications.map((n) => this.mapToRow(n));
       const { error } = await this.supabaseService.client
         .from('notifications' as any)
-        .upsert(rows as any);
+        .upsert(rows as any, { onConflict: 'id' });
       if (error) throw error;
     } catch (err) {
       console.error('Supabase bulk upsert notifications failed:', err);

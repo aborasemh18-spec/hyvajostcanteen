@@ -36,7 +36,7 @@ export class GuestCouponRequestRepository {
       const row = this.mapToRow(req);
       const { error } = await this.supabaseService.client
         .from('guest_coupon_requests' as any)
-        .upsert(row as any);
+        .upsert(row as any, { onConflict: 'id' });
       if (error) throw error;
     } catch (err) {
       console.error(`Supabase upsert guest coupon request with ID ${req.id} failed:`, err);
@@ -56,7 +56,7 @@ export class GuestCouponRequestRepository {
       const rows = requests.map((r) => this.mapToRow(r));
       const { error } = await this.supabaseService.client
         .from('guest_coupon_requests' as any)
-        .upsert(rows as any);
+        .upsert(rows as any, { onConflict: 'id' });
       if (error) throw error;
     } catch (err) {
       console.error('Supabase bulk upsert guest coupon requests failed:', err);
