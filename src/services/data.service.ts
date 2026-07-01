@@ -345,21 +345,9 @@ export class DataService implements OnDestroy {
         if (eventType === 'INSERT' || eventType === 'UPDATE') {
           const row = payload.new;
           if (row) {
-            const mapped = this.couponRepository.mapToCoupon(row);
-            this._coupons.update((coupons) => {
-              const idx = coupons.findIndex((c) => c.couponId === mapped.couponId);
-              if (idx !== -1) {
-                const existing = coupons[idx];
-                if (JSON.stringify(existing) === JSON.stringify(mapped)) {
-                  return coupons;
-                }
-                const copy = [...coupons];
-                copy[idx] = mapped;
-                return copy;
-              } else {
-                return [...coupons, mapped];
-              }
-            });
+            if (row.employee_id) {
+              this.refreshEmployeeCoupons(Number(row.employee_id));
+            }
           }
         } else if (eventType === 'DELETE') {
           const oldRow = payload.old;
@@ -376,6 +364,26 @@ export class DataService implements OnDestroy {
       console.error('Failed to set up Supabase Realtime listener for coupons:', err);
     }
   }
+
+  private async refreshEmployeeCoupons(employeeId: number) {
+    try {
+      const { data, error } = await this.supabaseService.client
+        .from('coupons')
+        .select('*')
+        .eq('employee_id', employeeId);
+      
+      if (error) throw error;
+      
+      const mappedCoupons = data.map(r => this.couponRepository.mapToCoupon(r));
+      this._coupons.update(coupons => {
+        const otherCoupons = coupons.filter(c => c.employeeId !== employeeId);
+        return [...otherCoupons, ...mappedCoupons];
+      });
+    } catch (err) {
+      console.error('Failed to refresh employee coupons:', err);
+    }
+  }
+
   private setupRealtimeQrCardsListener() {
     try {
       this.supabaseService.realtime('qr_cards', '*', async (payload) => {
