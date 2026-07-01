@@ -39,7 +39,7 @@ toggleEmployee(id: number) {
     const user = this.authService.currentUser();
     return user && 'employeeId' in user && user.employeeId === 'admin01';
   });
-  employees = computed(() => this.dataService.employees().filter(e => e.employeeId !== 'admin01'));
+  employees = computed(() => this.dataService.employees().filter(e => e.role === 'employee' || e.role === 'contractual employee'));
   
   isEditModalOpen = signal(false);
   isDeleteModalOpen = signal(false);
