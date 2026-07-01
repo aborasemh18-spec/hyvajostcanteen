@@ -1413,7 +1413,8 @@ if (
           title: "New Meal Coupons Generated",
           body: "Your new meal coupons have been generated successfully.",
           data: {
-            notification_type: "coupon_generated"
+            notification_type: "coupon_generated",
+            couponType: couponType
           }
         };
 
