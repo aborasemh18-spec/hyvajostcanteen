@@ -116,7 +116,7 @@ export class DataService implements OnDestroy {
 
   todaysIssuedCoupons = computed(() => {
     const todayStr = new Date().toISOString().split('T')[0];
-    return this._coupons().filter((c) => c.dateIssued.startsWith(todayStr))
+    return this._coupons().filter((c) => !c.isGuestCoupon && c.dateIssued.startsWith(todayStr))
       .length;
   });
 
@@ -1560,17 +1560,15 @@ if (
               (u) => u.id === sbCoupon.sharedByEmployeeId
             );
 
-            const guestInfo = sbCoupon.guestName
-              ? ` for ${sbCoupon.guestName}${
-                  sbCoupon.guestCompany
-                    ? ` (${sbCoupon.guestCompany})`
-                    : ''
-                }`
-              : '';
-
-            const successMessage = `Guest coupon redeemed successfully${guestInfo} (requested by ${
-              sharingEmployee?.name || 'Unknown'
-            }).`;
+            const hostName = sharingEmployee?.name || 'Unknown';
+            const guestName = sbCoupon.guestName || 'Unknown';
+            const guestCompany = sbCoupon.guestCompany || 'N/A';
+            const couponType = sbCoupon.couponType || 'Unknown';
+            
+            const successMessage = `GUEST_PASS_REDEEMED|${guestName}|${guestCompany}|${hostName}|${couponType}`;
+            
+            // For UI display feedback
+            const displayMessage = `Guest Pass Redeemed for ${guestName} (${guestCompany}) (requested by ${hostName}).`;
 
             const updatedCoupon: Coupon = {
               ...sbCoupon,
@@ -1580,6 +1578,17 @@ if (
 
             await this.couponRepository.upsert(updatedCoupon);
 
+            // Record punch event
+            const punchEventId = `CODE-${Date.now()}`;
+            const newPunchEvent: PunchEvent = {
+              id: punchEventId,
+              employeeId: sbCoupon.sharedByEmployeeId || 0,
+              resultType: 'redeemed',
+              message: successMessage,
+              createdAt: updatedCoupon.redeemDate
+            };
+            await this.punchEventRepository.upsert(newPunchEvent);
+
             this._coupons.update((coupons) =>
               coupons.map((c) =>
                 c.couponId === sbCoupon.couponId ? updatedCoupon : c
@@ -1588,7 +1597,7 @@ if (
 
             // Fallback removed
 
-            return { success: true, message: successMessage };
+            return { success: true, message: displayMessage };
           }
 
           if (!sbCoupon.employeeId) {
@@ -1617,6 +1626,19 @@ if (
 
           await this.couponRepository.upsert(updatedCoupon);
 
+          const msg = `Coupon redeemed successfully for ${employee?.name}.`;
+
+          // Record punch event
+          const punchEventId = `CODE-${Date.now()}`;
+          const newPunchEvent: PunchEvent = {
+            id: punchEventId,
+            employeeId: employee?.id || 0,
+            resultType: 'redeemed',
+            message: msg,
+            createdAt: updatedCoupon.redeemDate
+          };
+          await this.punchEventRepository.upsert(newPunchEvent);
+
           this._coupons.update((coupons) =>
             coupons.map((c) =>
               c.couponId === sbCoupon.couponId ? updatedCoupon : c
@@ -1627,7 +1649,7 @@ if (
 
           return {
             success: true,
-            message: `Coupon redeemed successfully for ${employee?.name}.`,
+            message: msg,
           };
         }
       } catch (err) {
@@ -2379,6 +2401,24 @@ if (
       );
     
       this.syncAllGuestCouponRequestsToDatabase();
+
+      const hostEmployee = this._employees().find(e => e.id === request.employeeId);
+      const hostName = hostEmployee?.name || 'Unknown';
+      const guestName = request.guestName || 'Unknown';
+      const guestCompany = request.guestCompany || 'N/A';
+      const couponType = request.couponType || 'Unknown';
+        
+      const newPunchEvent: PunchEvent = {
+        id: `GUEST-${Date.now()}`,
+        employeeId: request.employeeId || 0,
+        resultType: 'redeemed',
+        message: `GUEST_PASS_REDEEMED|${guestName}|${guestCompany}|${hostName}|${couponType}`,
+        createdAt: new Date().toISOString()
+      };
+      
+      this.punchEventRepository.upsert(newPunchEvent).catch(err => {
+        console.error('Failed to save guest punch event', err);
+      });
     
       return {
         success: true,

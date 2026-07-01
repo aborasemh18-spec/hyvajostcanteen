@@ -87,11 +87,44 @@ employees = computed(() =>
   // 🔁 live punch history (जर UI मध्ये वापरायचा असेल तर)
   punchHistory = computed(() => this.dataService.punchEventsHistory());
 
+  parsePunchMessage(msg: string) {
+    if (msg.startsWith('GUEST_PASS_REDEEMED|')) {
+      const parts = msg.split('|');
+      return {
+        isGuest: true,
+        title: 'Guest Pass Redeemed',
+        guestName: parts[1] || 'Unknown',
+        guestCompany: parts[2] || 'N/A',
+        hostEmployee: parts[3] || 'Unknown',
+        couponType: parts[4] || 'Unknown'
+      };
+    }
+    // Handle old format for backward compatibility
+    if (msg.includes('Guest Pass Redeemed')) {
+      return {
+        isGuest: true,
+        title: 'Guest Pass Redeemed',
+        originalMessage: msg
+      };
+    }
+    return {
+      isGuest: false,
+      originalMessage: msg
+    };
+  }
+
   private allRedeemedCoupons = computed(() => {
     return this.dataService
       .coupons()
-      .filter((c) => c.status === 'redeemed' && c.redeemDate);
+      .filter((c) => c.status === 'redeemed' && c.redeemDate && !c.isGuestCoupon);
   });
+
+  private allRedeemedGuestCoupons = computed(() => {
+    return this.dataService
+      .coupons()
+      .filter((c) => c.status === 'redeemed' && c.redeemDate && c.isGuestCoupon);
+  });
+
   private redeemedGuestRequests = computed(() =>
     this.dataService
       .guestCouponRequests()
@@ -125,14 +158,7 @@ employees = computed(() =>
           c.redeemDate!.startsWith(todayStr)
       ).length;
   
-    const guestCount =
-      this.redeemedGuestRequests().filter(
-        r =>
-          r.couponType === 'Breakfast' &&
-          r.servedDate!.startsWith(todayStr)
-      ).length;
-  
-    return couponCount + guestCount;
+    return couponCount;
   
   });
 
@@ -148,14 +174,7 @@ employees = computed(() =>
           c.redeemDate!.startsWith(todayStr)
       ).length;
   
-    const guestCount =
-      this.redeemedGuestRequests().filter(
-        r =>
-          r.couponType === 'Lunch/Dinner' &&
-          r.servedDate!.startsWith(todayStr)
-      ).length;
-  
-    return couponCount + guestCount;
+    return couponCount;
   
   });
 
@@ -196,7 +215,7 @@ employees = computed(() =>
     const todayStr =
       new Date().toISOString().split('T')[0];
   
-    return this.dataService
+    const directRequests = this.dataService
       .guestCouponRequests()
       .filter(
         r =>
@@ -205,6 +224,12 @@ employees = computed(() =>
           r.servedDate?.startsWith(todayStr)
       )
       .length;
+
+    const guestCoupons = this.allRedeemedGuestCoupons()
+      .filter(c => c.redeemDate?.startsWith(todayStr))
+      .length;
+
+    return directRequests + guestCoupons;
   
   });
   
@@ -212,7 +237,7 @@ employees = computed(() =>
   
     const now = new Date();
   
-    return this.dataService
+    const directRequests = this.dataService
       .guestCouponRequests()
       .filter(r => {
   
@@ -232,6 +257,17 @@ employees = computed(() =>
         );
   
       }).length;
+
+    const guestCoupons = this.allRedeemedGuestCoupons()
+      .filter(c => {
+        const d = new Date(c.redeemDate!);
+        return (
+          d.getMonth() === now.getMonth() &&
+          d.getFullYear() === now.getFullYear()
+        );
+      }).length;
+
+    return directRequests + guestCoupons;
   
   });
 

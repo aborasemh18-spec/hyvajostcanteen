@@ -729,17 +729,44 @@
                 'bg-gray-50 border-gray-300': ev.resultType === 'error'
               }"
             >
+              @let parsedMsg = parsePunchMessage(ev.message);
               <div class="flex justify-between items-center">
-                <span class="font-semibold">
-                  {{ employeesMap().get(ev.employeeId) || ('Emp #' + ev.employeeId) }}
+                <span class="font-semibold text-gray-900 dark:text-gray-100">
+                  @if (parsedMsg.isGuest) {
+                    {{ parsedMsg.title }}
+                  } @else {
+                    {{ employeesMap().get(ev.employeeId) || ('Emp #' + ev.employeeId) }}
+                  }
                 </span>
-                <span class="text-xs text-gray-500">
+                <span class="text-xs text-gray-500 flex-shrink-0 ml-2">
                   {{ formatTime(ev.createdAt) }}
                 </span>
               </div>
-              <div class="text-xs text-gray-700 dark:text-gray-200">
-                {{ ev.message }}
-              </div>
+              
+              @if (parsedMsg.isGuest && parsedMsg.guestName) {
+                <div class="mt-1 grid grid-cols-2 gap-x-2 gap-y-1 text-xs text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 p-2 rounded-md border border-gray-100 dark:border-gray-700">
+                  <div class="flex flex-col">
+                    <span class="text-[10px] text-gray-400 uppercase tracking-wider">Guest Name</span>
+                    <span class="font-medium truncate">{{ parsedMsg.guestName }}</span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-[10px] text-gray-400 uppercase tracking-wider">Host</span>
+                    <span class="font-medium truncate">{{ parsedMsg.hostEmployee }}</span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-[10px] text-gray-400 uppercase tracking-wider">Company</span>
+                    <span class="truncate">{{ parsedMsg.guestCompany }}</span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-[10px] text-gray-400 uppercase tracking-wider">Meal</span>
+                    <span class="truncate">{{ parsedMsg.couponType }}</span>
+                  </div>
+                </div>
+              } @else {
+                <div class="text-xs text-gray-700 dark:text-gray-200 mt-0.5">
+                  {{ parsedMsg.originalMessage }}
+                </div>
+              }
             </li>
           }
         </ul>

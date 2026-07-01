@@ -70,17 +70,13 @@ export class AdminDashboardComponent {
   );
   
   todaysGuestPassCount = computed(() => {
-
-    const today =
-      new Date().toISOString().split('T')[0];
-  
+    const today = new Date().toISOString().split('T')[0];
     return this.dataService
-      .guestCouponRequests()
-      .filter(r =>
-        r.status === 'redeemed' &&
-        String(r.servedDate ?? "").startsWith(today)
+      .coupons()
+      .filter(c =>
+        c.isGuestCoupon === true &&
+        c.dateIssued.startsWith(today)
       ).length;
-  
   });
 
   isScannerModalOpen = signal(false);
