@@ -49,56 +49,31 @@ export class SupabaseHealthCheckService {
     let latencyMs = 0;
 
     try {
-      // 1. Reachability Check
-      const restUrl = `${url}/rest/v1/`;
-      const reachStart = Date.now();
-      const reachResponse = await fetch(restUrl, {
-        method: 'GET',
-        headers: { 'apikey': key }
-      });
-      const reachLatency = Date.now() - reachStart;
-      latencyMs = reachLatency;
-      connected = true;
+      const dbStart = Date.now();
+      const { error } = await supabase
+        .from('employees')
+        .select('id')
+        .limit(1);
+      
+      latencyMs = Date.now() - dbStart;
 
-      // 2. Authentication Check
-      if (reachResponse.ok) {
+      if (!error) {
+        connected = true;
         authenticated = true;
-      } else if (reachResponse.status === 401 || reachResponse.status === 403) {
-        authenticated = false;
+        database = true;
       } else {
-        const text = await reachResponse.text();
-        if (!text.includes('invalid') && !text.includes('JWT') && reachResponse.status !== 401) {
+        console.warn('Supabase query failed during health check:', error);
+        connected = true;
+        if (error.code === '42P01') {
+          // relation does not exist
+          database = false;
+          // relation does not exist means table is missing, but auth is okay
           authenticated = true;
-        }
-      }
-
-      // 3. Database connectivity & employees table existence check
-      if (connected) {
-        const dbStart = Date.now();
-        const { error } = await supabase
-          .from('employees')
-          .select('id')
-          .limit(1);
-        
-        const dbLatency = Date.now() - dbStart;
-        latencyMs = Math.round((latencyMs + dbLatency) / 2);
-
-        if (!error) {
-          database = true;
-          authenticated = true; // Query succeeded, so auth is valid
+        } else if ((error as any).status === 401 || (error as any).status === 403) {
+          authenticated = false;
+          database = false;
         } else {
-          console.warn('Supabase query failed during health check:', error);
-          if (error.code === '42P01') {
-            // relation does not exist
-            database = false;
-            // relation does not exist means table is missing, but auth is okay
-            authenticated = true;
-          } else if ((error as any).status === 401 || (error as any).status === 403) {
-            authenticated = false;
-            database = false;
-          } else {
-            database = false;
-          }
+          database = false;
         }
       }
     } catch (err) {
