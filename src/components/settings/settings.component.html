@@ -85,7 +85,7 @@
         <button type="submit" [disabled]="testEmailForm.invalid" class="px-4 py-2 rounded font-semibold text-white bg-green-600 hover:bg-green-700 disabled:bg-green-400">Send Test</button>
       </form>
       @if (testEmailStatus(); as status) {
-        <div class="mt-4 p-3 rounded-md text-sm" [class.bg-green-100]="status.type === 'success'" [class.dark:bg-green-900/50]="status.type === 'success'" [class.text-green-800]="status.type === 'success'" [class.dark:text-green-200]="status.type === 'success'">
+        <div class="mt-4 p-3 rounded-md text-sm {{ status.type === 'success' ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200' : 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200' }}">
           {{ status.message }}
         </div>
       }
