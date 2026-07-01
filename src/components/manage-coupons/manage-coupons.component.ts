@@ -558,11 +558,11 @@ for (const coupon of employeeCoupons) {
     this.isRemoveLastBatchModalOpen.set(false);
   }
 
-  handleGenerateCoupons() {
+  async handleGenerateCoupons() {
     this.generateCouponError.set(null);
     if (this.generateCouponsForm.valid && this.selectedEmployee()) {
       const { couponType } = this.generateCouponsForm.value;
-      const result = this.dataService.generateCouponsForEmployee(
+      const result = await this.dataService.generateCouponsForEmployee(
         this.selectedEmployee()!.id,
         couponType!
       );

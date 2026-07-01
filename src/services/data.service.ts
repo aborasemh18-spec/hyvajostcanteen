@@ -1199,10 +1199,10 @@ return newEmployee;
     };
   }
 
-  generateCouponsForEmployee(
+  async generateCouponsForEmployee(
     employeeId: number,
     couponType: Coupon['couponType']
-  ): { success: boolean; message: string } {
+  ): Promise<{ success: boolean; message: string }> {
     const employee = this._employees().find((e) => e.id === employeeId);
     if (!employee) {
       return { success: false, message: 'Employee not found.' };
@@ -1358,7 +1358,7 @@ if (
 }
     this._coupons.update((coupons) => [...coupons, ...newCoupons]);
 
-    this.syncAllCouponsToDatabase();
+    await this.syncAllCouponsToDatabase();
 
     this.emailService.sendCouponNotification(
       employee,
@@ -1388,6 +1388,54 @@ if (
       }
     );
     this.syncAllNotificationsToDatabase();
+
+    // Fetch the employee's fcm_token from Supabase
+    let fcmToken: string | null = null;
+    try {
+      const { data: empData, error: empError } = await this.supabaseService.client
+        .from('employees')
+        .select('fcm_token')
+        .eq('id', employeeId)
+        .single();
+        
+      if (!empError && empData) {
+        fcmToken = (empData as any).fcm_token;
+      }
+    } catch (err) {
+      console.error('Error fetching employee fcm_token from Supabase:', err);
+    }
+
+    // Call the Vercel sendNotification endpoint if token exists
+    if (fcmToken) {
+      try {
+        const payload = {
+          token: fcmToken,
+          title: "New Meal Coupons Generated",
+          body: "Your new meal coupons have been generated successfully.",
+          data: {
+            notification_type: "coupon_generated"
+          }
+        };
+
+        const response = await fetch('/api/sendNotification', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          console.error(`Vercel sendNotification endpoint failed with status ${response.status}:`, response.statusText);
+        } else {
+          console.log('Successfully sent push notification to Vercel sendNotification endpoint');
+        }
+      } catch (err) {
+        console.error('Failed to call Vercel sendNotification endpoint:', err);
+      }
+    } else {
+      console.warn(`No FCM token available for employee ${employeeId}, skipping push notification.`);
+    }
 
     return {
       success: true,

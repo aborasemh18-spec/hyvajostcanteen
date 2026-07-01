@@ -46,6 +46,7 @@ export interface Database {
           last_lunch_date: string | null;
           last_evening_breakfast_date: string | null;
           last_dinner_date: string | null;
+          fcm_token: string | null;
           created_at: string;
         };
         Insert: {
@@ -66,6 +67,7 @@ export interface Database {
           last_lunch_date?: string | null;
           last_evening_breakfast_date?: string | null;
           last_dinner_date?: string | null;
+          fcm_token?: string | null;
           created_at?: string;
         };
         Update: {
@@ -86,6 +88,7 @@ export interface Database {
           last_lunch_date?: string | null;
           last_evening_breakfast_date?: string | null;
           last_dinner_date?: string | null;
+          fcm_token?: string | null;
           created_at?: string;
         };
       };
