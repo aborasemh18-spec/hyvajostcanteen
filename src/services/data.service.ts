@@ -276,11 +276,25 @@ export class DataService implements OnDestroy {
     }
   }
 
-  private async syncAllCouponsToDatabase() {
+  private async syncAllCouponsToDatabase(isDeletion: boolean = false) {
     try {
       const coupons = this._coupons();
       const activeIds = coupons.map((c) => c.couponId);
       await this.couponRepository.upsertMany(coupons);
+
+      // Safeguard: Fetch total database count before deleting any coupons to prevent accidental loss
+      // when the client-side state is incomplete or partially loaded.
+      const { count, error } = await this.supabaseService.client
+        .from('coupons')
+        .select('*', { count: 'exact', head: true });
+
+      if (!error && count !== null) {
+        if (coupons.length < count && !isDeletion) {
+          console.warn(`Skipping coupon deletion sync to prevent accidental data loss: client has ${coupons.length} coupons, database has ${count}.`);
+          return;
+        }
+      }
+
       await this.couponRepository.deleteManyNotIn(activeIds);
     } catch (err) {
       console.error('Error syncing coupons collection to Supabase:', err);
@@ -1069,7 +1083,7 @@ return newEmployee;
     );
 
     this.syncAllEmployeesToDatabase();
-    this.syncAllCouponsToDatabase();
+    this.syncAllCouponsToDatabase(true);
     this.syncAllNotificationsToDatabase();
   }
 
@@ -1154,7 +1168,7 @@ return newEmployee;
     );
 
     this.syncAllEmployeesToDatabase();
-    this.syncAllCouponsToDatabase();
+    this.syncAllCouponsToDatabase(true);
     this.syncAllContractorsToDatabase();
   }
 
@@ -1178,7 +1192,7 @@ return newEmployee;
     this._coupons.update((coupons) =>
       coupons.filter((c) => c.couponId !== couponId)
     );
-    this.syncAllCouponsToDatabase();
+    this.syncAllCouponsToDatabase(true);
     return {
       success: true,
       message: `Coupon ${couponId} removed successfully.`,
@@ -2108,7 +2122,7 @@ if (
 
     if (removedCount > 0) {
       this._coupons.set(couponsAfter);
-      this.syncAllCouponsToDatabase();
+      this.syncAllCouponsToDatabase(true);
       return {
         success: true,
         message: `Successfully removed the last batch of ${removedCount} coupon(s).`,
@@ -2174,7 +2188,7 @@ if (
   
       this._coupons.set(couponsAfter);
   
-      this.syncAllCouponsToDatabase();
+      this.syncAllCouponsToDatabase(true);
   
       return {
         success: true,

@@ -229,6 +229,14 @@ export class EmployeeDashboardComponent {
     () => this.totalCoupons() - this.usedCoupons()
   );
 
+  breakfastCoupon = computed(() => {
+    return this.nextAvailableCoupons().find(c => c.couponType === 'Breakfast') || null;
+  });
+
+  lunchDinnerCoupon = computed(() => {
+    return this.nextAvailableCoupons().find(c => c.couponType === 'Lunch/Dinner') || null;
+  });
+
   // =========================
   // Redeem coupon modal
   // =========================

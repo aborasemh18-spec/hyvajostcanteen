@@ -22,15 +22,38 @@ export class SupabaseService {
     query: string = '*',
     filters?: (queryBuilder: any) => any
   ): Promise<Database['public']['Tables'][T]['Row'][]> {
-    let q = this.client.from(table).select(query);
-    if (filters) {
-      q = filters(q);
+    const allRows: Database['public']['Tables'][T]['Row'][] = [];
+    let page = 0;
+    const pageSize = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      const from = page * pageSize;
+      const to = from + pageSize - 1;
+
+      let q = this.client.from(table).select(query).range(from, to);
+      if (filters) {
+        q = filters(q);
+      }
+
+      const { data, error } = await q;
+      if (error) {
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        hasMore = false;
+      } else {
+        allRows.push(...(data as any as Database['public']['Tables'][T]['Row'][]));
+        if (data.length < pageSize) {
+          hasMore = false;
+        } else {
+          page++;
+        }
+      }
     }
-    const { data, error } = await q;
-    if (error) {
-      throw error;
-    }
-    return data as any as Database['public']['Tables'][T]['Row'][];
+
+    return allRows;
   }
 
   /**

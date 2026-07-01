@@ -1,231 +1,345 @@
-<div class="container mx-auto px-4 py-6">
+<div class="container mx-auto px-4 py-8 max-w-7xl">
+  <!-- Header Welcome Section -->
   @if (currentEmployee(); as employee) {
-    <h1 class="text-3xl font-bold text-gray-800 dark:text-white mb-2">
-      Welcome, {{ employee.name }}
-    </h1>
-    <p class="text-md text-gray-500 dark:text-gray-400 mb-6">
-      {{ employee.department }} Department
-    </p>
+    <div class="mb-8 animate-fadeIn">
+      <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
+        Welcome back, <span class="text-indigo-600 dark:text-indigo-400">{{ employee.name }}</span>
+      </h1>
+      <p class="mt-2 text-sm font-medium text-slate-500 dark:text-slate-400">
+        {{ employee.department }} Department &bull; Employee ID: {{ employee.id }}
+      </p>
+    </div>
   }
 
   <!-- Main Dashboard Grid Layout -->
-  <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-[320px_1fr] gap-6 items-start">
+  <!-- Desktop: 2 columns with fixed left col (320px) and flexible right col -->
+  <!-- Tablet: 2 columns with proportional widths (left col spans 1/3, right col spans 2/3) -->
+  <!-- Mobile: 1 column vertical stack -->
+  <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-[320px_1fr] gap-8 items-start">
     
     <!-- LEFT COLUMN: Permanent QR & Download (Item 1 on Mobile) -->
-    <div class="md:col-span-1 flex flex-col gap-6">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-        <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4 text-center md:text-left">
+    <div class="col-span-1 flex flex-col gap-8">
+      <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-300 p-6 text-center">
+        <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-2">
           My Permanent QR
         </h2>
-        <div class="text-center">
+        <p class="text-xs text-slate-500 dark:text-slate-400 mb-6">
+          Show this QR to the canteen manager to scan
+        </p>
+        
+        <div class="inline-block p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800/50 mb-6">
           @if (employeeQrCodeDataUrl()) {
-            <img [src]="employeeQrCodeDataUrl()" class="w-56 h-56 mx-auto rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-2 bg-white" />
+            <img [src]="employeeQrCodeDataUrl()" alt="Permanent QR" class="w-48 h-48 mx-auto rounded-xl shadow-sm border border-white bg-white p-2" referrerpolicy="no-referrer" />
           } @else {
-            <div class="w-56 h-56 bg-gray-100 dark:bg-gray-700 rounded-lg mx-auto flex items-center justify-center">
-              <span class="text-gray-400 text-sm">Generating...</span>
+            <div class="w-48 h-48 bg-slate-100 dark:bg-slate-800 rounded-xl mx-auto flex items-center justify-center">
+              <span class="text-slate-400 text-sm animate-pulse">Generating...</span>
             </div>
           }
-          <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">
-            Show this QR to canteen manager
-          </p>
-          <button (click)="downloadQrCard()" class="w-full mt-4 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors">
-            Download QR Card
-          </button>
         </div>
+
+        <button (click)="downloadQrCard()" class="w-full inline-flex items-center justify-center px-4 py-3 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold rounded-xl shadow-sm hover:shadow transition-all duration-200">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          Download QR Card
+        </button>
       </div>
     </div>
 
     <!-- RIGHT COLUMN (Item 2-9 on Mobile) -->
-    <div class="md:col-span-2 lg:col-span-1 flex flex-col gap-6">
+    <div class="col-span-1 md:col-span-2 lg:col-span-1 flex flex-col gap-8">
       
-      <!-- Stats block: Total Coupons, Remaining Coupons, Used Coupons -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <!-- Total Coupons -->
-        <div class="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md flex flex-col justify-between">
-          <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-            Total Coupons
-          </h3>
-          <p class="text-4xl font-bold text-indigo-600 dark:text-indigo-400 mt-2">
-            {{ totalCoupons() }}
-          </p>
-        </div>
-
-        <!-- Remaining Coupons -->
-        <div class="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md flex flex-col justify-between">
-          <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-            Remaining Coupons
-          </h3>
-          <p class="text-4xl font-bold text-green-600 dark:text-green-400 mt-2">
-            {{ remainingCoupons() }}
-          </p>
-        </div>
-
-        <!-- Used Coupons -->
-        <div class="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md flex flex-col justify-between">
+      <!-- Stats block: Total, Remaining, Used (Items 2, 3, 4 on Mobile) -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <!-- Total Coupons (Item 2) -->
+        <div class="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300">
           <div>
-            <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <h3 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+              Total Coupons
+            </h3>
+            <p class="text-4xl font-extrabold text-indigo-600 dark:text-indigo-400 mt-3">
+              {{ totalCoupons() }}
+            </p>
+          </div>
+          <div class="mt-4 pt-4 border-t border-slate-50 dark:border-slate-800/50 text-xs text-slate-500">
+            Assigned for current cycle
+          </div>
+        </div>
+
+        <!-- Remaining Coupons (Item 3) -->
+        <div class="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300">
+          <div>
+            <h3 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+              Remaining Coupons
+            </h3>
+            <p class="text-4xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-3">
+              {{ remainingCoupons() }}
+            </p>
+          </div>
+          <div class="mt-4 pt-4 border-t border-slate-50 dark:border-slate-800/50 text-xs text-slate-500">
+            Available for redemption
+          </div>
+        </div>
+
+        <!-- Used Coupons (Item 4) -->
+        <div class="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300">
+          <div>
+            <h3 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
               Used Coupons
             </h3>
-            <p class="text-4xl font-bold text-red-600 dark:text-red-400 mt-2">
+            <p class="text-4xl font-extrabold text-rose-600 dark:text-rose-400 mt-3">
               {{ usedCoupons() }}
             </p>
           </div>
-          @if (usedCoupons() > 0) {
-            <div class="mt-4 text-right">
-              <a (click)="openHistoryModal()" class="text-sm font-medium text-indigo-600 hover:underline dark:text-indigo-400 cursor-pointer">
+          <div class="mt-4 pt-4 border-t border-slate-50 dark:border-slate-800/50 flex justify-between items-center text-xs">
+            <span class="text-slate-500">Redeemed coupons</span>
+            @if (usedCoupons() > 0) {
+              <button (click)="openHistoryModal()" class="font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors">
                 View History
-              </a>
-            </div>
-          }
+              </button>
+            }
+          </div>
         </div>
       </div>
 
-      <!-- Today's Menu -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-        <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4">
-          Today's Menu
-        </h2>
+      <!-- Today's Menu (Item 5 on Mobile) -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-300 p-6">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+            Today's Menu
+          </h2>
+          <span class="text-xs font-semibold text-slate-400 bg-slate-50 dark:bg-slate-950 dark:text-slate-500 px-3 py-1 rounded-full border border-slate-100 dark:border-slate-800/50">
+            Today
+          </span>
+        </div>
+
         @if (todaysMenu(); as menu) {
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <!-- Breakfast Section -->
-            <div class="p-4 bg-yellow-50/50 dark:bg-yellow-950/20 rounded-lg border border-yellow-100 dark:border-yellow-900/30">
-              <h3 class="text-lg font-semibold text-yellow-800 dark:text-yellow-400 mb-2 flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-yellow-500"></span>
+            <div class="p-5 bg-amber-50/40 dark:bg-amber-950/10 rounded-xl border border-amber-100/60 dark:border-amber-900/20">
+              <h3 class="text-md font-bold text-amber-800 dark:text-amber-400 mb-2 flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
                 Breakfast
               </h3>
-              <p class="text-gray-600 dark:text-gray-300 whitespace-pre-line text-sm">
+              <p class="text-slate-600 dark:text-slate-300 whitespace-pre-line text-sm leading-relaxed">
                 {{ menu.breakfastMenu }}
               </p>
             </div>
             <!-- Lunch/Dinner Section -->
-            <div class="p-4 bg-blue-50/50 dark:bg-blue-950/20 rounded-lg border border-blue-100 dark:border-blue-900/30">
-              <h3 class="text-lg font-semibold text-blue-800 dark:text-blue-400 mb-2 flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+            <div class="p-5 bg-blue-50/40 dark:bg-blue-950/10 rounded-xl border border-blue-100/60 dark:border-blue-900/20">
+              <h3 class="text-md font-bold text-blue-800 dark:text-blue-400 mb-2 flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
                 Lunch / Dinner
               </h3>
-              <p class="text-gray-600 dark:text-gray-300 whitespace-pre-line text-sm">
+              <p class="text-slate-600 dark:text-slate-300 whitespace-pre-line text-sm leading-relaxed">
                 {{ menu.lunchDinnerMenu }}
               </p>
             </div>
           </div>
         } @else {
-          <div class="text-center py-8 flex flex-col items-center justify-center">
-            <svg class="h-10 w-10 text-gray-400 mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <div class="text-center py-10 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+            <svg class="h-10 w-10 text-slate-400 dark:text-slate-600 mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
             </svg>
-            <h3 class="text-base font-semibold text-gray-900 dark:text-white">Menu Not Available</h3>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">The menu for today has not been published yet.</p>
+            <h3 class="text-base font-semibold text-slate-900 dark:text-white">Menu Not Available</h3>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">The menu for today has not been published yet.</p>
           </div>
         }
       </div>
 
-      <!-- Breakfast & Lunch/Dinner Coupon Cards (Next Available) -->
+      <!-- Breakfast & Lunch/Dinner Coupon Cards (Items 6 & 7 on Mobile) -->
       <div>
-        <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4">
+        <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+          </svg>
           Your Next Available Coupons
         </h2>
-        @if (nextAvailableCoupons().length > 0) {
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            @for (coupon of nextAvailableCoupons(); track coupon.couponId) {
-              <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 flex flex-col justify-between border border-gray-100 dark:border-gray-700 animate-fadeIn">
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Breakfast Coupon Card (Item 6 on Mobile) -->
+          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-300 p-6 flex flex-col justify-between">
+            <div class="flex-1">
+              <div class="flex justify-between items-start mb-4">
                 <div>
-                  <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-bold text-gray-800 dark:text-white">
-                      {{ coupon.couponType }} Coupon
-                    </h3>
-                    <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">
-                      Available
-                    </span>
-                  </div>
-                  <p class="text-xs text-gray-500 dark:text-gray-400">
-                    Issued on: {{ formatDateTime(coupon.dateIssued) }}
-                  </p>
+                  <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                    Breakfast Coupon
+                  </h3>
+                  @if (breakfastCoupon(); as coupon) {
+                    <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
+                      Issued: {{ formatDateTime(coupon.dateIssued) }}
+                    </p>
+                  }
                 </div>
-                <div class="mt-6 text-center bg-gray-50 dark:bg-gray-900/30 p-4 rounded-lg border border-gray-100 dark:border-gray-700">
-                  <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                    Your redemption code is:
+                @if (breakfastCoupon()) {
+                  <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30">
+                    Active
+                  </span>
+                } @else {
+                  <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-50 text-slate-400 dark:bg-slate-950 dark:text-slate-600 border border-slate-100 dark:border-slate-800/30">
+                    Redeemed
+                  </span>
+                }
+              </div>
+
+              @if (breakfastCoupon(); as coupon) {
+                <div class="mt-6 text-center bg-slate-50 dark:bg-slate-950/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800/50">
+                  <p class="text-xs text-slate-400 dark:text-slate-500 mb-1">
+                    Your redemption code is
                   </p>
-                  <p class="text-3xl font-mono font-bold tracking-widest text-indigo-600 dark:text-indigo-400">
+                  <p class="text-2xl font-mono font-extrabold tracking-widest text-indigo-600 dark:text-indigo-400">
                     {{ coupon.redemptionCode }}
                   </p>
                 </div>
-                <div class="mt-6">
-                  <button (click)="openRedeemModal(coupon)" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-sm transition-colors">
-                    Redeem
-                  </button>
+              } @else {
+                <div class="text-center py-8">
+                  <svg class="mx-auto h-12 w-12 text-slate-300 dark:text-slate-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p class="mt-3 text-sm text-slate-400 dark:text-slate-500">
+                    No active breakfast coupon
+                  </p>
                 </div>
+              }
+            </div>
+
+            @if (breakfastCoupon(); as coupon) {
+              <div class="mt-6">
+                <button (click)="openRedeemModal(coupon)" class="w-full inline-flex items-center justify-center px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-sm transition-all duration-200">
+                  Redeem Breakfast
+                </button>
               </div>
             }
           </div>
-        } @else {
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md text-center py-12 px-6 border border-gray-100 dark:border-gray-700">
-            <svg class="mx-auto h-12 w-12 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9.548 4.131l-3.332 3.332a4.5 4.5 0 000 6.364l3.332 3.332a4.5 4.5 0 006.364 0l3.332-3.332a4.5 4.5 0 000-6.364l-3.332-3.332a4.5 4.5 0 00-6.364 0z" />
-            </svg>
-            <h3 class="mt-4 text-lg font-semibold text-gray-900 dark:text-white">All Coupons Redeemed!</h3>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">You have no more available coupons. New coupons will be issued according to the schedule.</p>
+
+          <!-- Lunch/Dinner Coupon Card (Item 7 on Mobile) -->
+          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-300 p-6 flex flex-col justify-between">
+            <div class="flex-1">
+              <div class="flex justify-between items-start mb-4">
+                <div>
+                  <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                    Lunch / Dinner Coupon
+                  </h3>
+                  @if (lunchDinnerCoupon(); as coupon) {
+                    <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
+                      Issued: {{ formatDateTime(coupon.dateIssued) }}
+                    </p>
+                  }
+                </div>
+                @if (lunchDinnerCoupon()) {
+                  <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30">
+                    Active
+                  </span>
+                } @else {
+                  <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-50 text-slate-400 dark:bg-slate-950 dark:text-slate-600 border border-slate-100 dark:border-slate-800/30">
+                    Redeemed
+                  </span>
+                }
+              </div>
+
+              @if (lunchDinnerCoupon(); as coupon) {
+                <div class="mt-6 text-center bg-slate-50 dark:bg-slate-950/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800/50">
+                  <p class="text-xs text-slate-400 dark:text-slate-500 mb-1">
+                    Your redemption code is
+                  </p>
+                  <p class="text-2xl font-mono font-extrabold tracking-widest text-indigo-600 dark:text-indigo-400">
+                    {{ coupon.redemptionCode }}
+                  </p>
+                </div>
+              } @else {
+                <div class="text-center py-8">
+                  <svg class="mx-auto h-12 w-12 text-slate-300 dark:text-slate-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p class="mt-3 text-sm text-slate-400 dark:text-slate-500">
+                    No active lunch/dinner coupon
+                  </p>
+                </div>
+              }
+            </div>
+
+            @if (lunchDinnerCoupon(); as coupon) {
+              <div class="mt-6">
+                <button (click)="openRedeemModal(coupon)" class="w-full inline-flex items-center justify-center px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-sm transition-all duration-200">
+                  Redeem Lunch / Dinner
+                </button>
+              </div>
+            }
           </div>
-        }
+        </div>
       </div>
 
-      <!-- Guest Pass Section -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-        <div class="flex flex-col md:flex-row items-center gap-6">
-          <div class="flex-shrink-0">
-            <div class="w-16 h-16 rounded-full bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center text-teal-600 dark:text-teal-400">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+      <!-- Guest Pass Section (Item 8 on Mobile) -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-300 p-6">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+          <div class="flex items-start gap-4">
+            <div class="p-3 bg-teal-50 dark:bg-teal-950/50 rounded-xl text-teal-600 dark:text-teal-400 border border-teal-100/30 dark:border-teal-900/30">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
               </svg>
             </div>
-          </div>
-          <div class="flex-1 text-center md:text-left">
-            <h2 class="text-xl font-bold text-gray-800 dark:text-white">Need a Guest Pass?</h2>
-            <p class="text-gray-600 dark:text-gray-400 mt-2 text-sm">
-              Send a guest pass request for visitors. Admin will review and approve. Approved guest passes can be shared via QR or WhatsApp.
-            </p>
-
-            @let stats = guestCouponStats();
-            @if (stats.generated > 0 || guestPassRequestsHistory().length > 0) {
-              <div class="mt-4 flex justify-center md:justify-start items-center space-x-6 bg-gray-50 dark:bg-gray-900/30 p-3 rounded-lg border border-gray-100 dark:border-gray-700 w-fit">
-                <div class="text-center px-2">
-                  <p class="text-xl font-bold text-gray-700 dark:text-gray-300">{{ stats.generated }}</p>
-                  <p class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Generated</p>
-                </div>
-                <div class="text-center px-2 border-l border-gray-200 dark:border-gray-700">
-                  <p class="text-xl font-bold text-gray-700 dark:text-gray-300">{{ stats.redeemed }}</p>
-                  <p class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Redeemed</p>
-                </div>
+            <div>
+              <h2 class="text-lg font-bold text-slate-900 dark:text-white">Need a Guest Pass?</h2>
+              <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                Send a guest pass request for visitors. Approved guest passes can be shared via QR or WhatsApp instantly.
+              </p>
+              
+              <div class="mt-4 flex flex-wrap gap-4 items-center">
+                @let stats = guestCouponStats();
+                @if (stats.generated > 0 || guestPassRequestsHistory().length > 0) {
+                  <div class="flex items-center gap-4 bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-800/50">
+                    <div class="text-center px-2">
+                      <p class="text-lg font-extrabold text-slate-800 dark:text-slate-200">{{ stats.generated }}</p>
+                      <p class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Generated</p>
+                    </div>
+                    <div class="h-6 border-l border-slate-200 dark:border-slate-800"></div>
+                    <div class="text-center px-2">
+                      <p class="text-lg font-extrabold text-slate-800 dark:text-slate-200">{{ stats.redeemed }}</p>
+                      <p class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Redeemed</p>
+                    </div>
+                  </div>
+                }
+                
+                <button (click)="isGuestHistoryModalOpen.set(true)" class="text-xs font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors">
+                  View Guest Request History &rarr;
+                </button>
               </div>
-            }
-            <div class="mt-4 text-center md:text-left">
-              <a (click)="isGuestHistoryModalOpen.set(true)" class="text-sm font-medium text-teal-600 hover:underline cursor-pointer">
-                View Guest Request History
-              </a>
             </div>
           </div>
-          <div class="flex-shrink-0 w-full md:w-auto">
-            <button (click)="openGenerateGuestPassModal()" class="w-full md:w-auto bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-6 rounded-lg shadow-sm transition-colors">
-              Request Guest Pass
-            </button>
-          </div>
+
+          <button (click)="openGenerateGuestPassModal()" class="w-full lg:w-auto inline-flex items-center justify-center px-5 py-3 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-xl shadow-sm transition-all duration-200 whitespace-nowrap">
+            Request Guest Pass
+          </button>
         </div>
       </div>
 
       <!-- Guest Pass Approval Requests (renders if any) -->
       @if (pendingGuestApprovals().length > 0) {
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-          <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4">Guest Pass Approval Requests</h2>
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-rose-100 dark:border-rose-950 shadow-sm p-6">
+          <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
+            Guest Pass Approvals Required
+          </h2>
           <div class="space-y-4">
             @for (req of pendingGuestApprovals(); track req.id) {
-              <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50/50 dark:bg-gray-900/10">
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-gray-700 dark:text-gray-300 mb-4">
-                  <div><b>Guest:</b> {{ req.guestName }}</div>
-                  <div><b>Company:</b> {{ req.guestCompany }}</div>
-                  <div><b>Meal:</b> {{ req.couponType }}</div>
+              <div class="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50/50 dark:bg-slate-950/20">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-slate-700 dark:text-slate-300 mb-4">
+                  <div><span class="text-xs text-slate-400 block">Guest Name</span><b>{{ req.guestName }}</b></div>
+                  <div><span class="text-xs text-slate-400 block">Company</span><b>{{ req.guestCompany }}</b></div>
+                  <div><span class="text-xs text-slate-400 block">Meal Type</span><b>{{ req.couponType }}</b></div>
                 </div>
                 <div class="flex gap-3">
-                  <button (click)="openApproveGuestPopup(req)" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">Approve</button>
-                  <button (click)="rejectGuestRequest(req.id)" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">Reject</button>
+                  <button (click)="openApproveGuestPopup(req)" class="flex-1 sm:flex-none px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition-all duration-200 shadow-sm">
+                    Approve
+                  </button>
+                  <button (click)="rejectGuestRequest(req.id)" class="flex-1 sm:flex-none px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-semibold transition-all duration-200 shadow-sm">
+                    Reject
+                  </button>
                 </div>
               </div>
             }
@@ -233,41 +347,44 @@
         </div>
       }
 
-      <!-- Coupon History Card -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-100 dark:border-gray-700">
-        <div class="flex justify-between items-center mb-4">
-          <h2 class="text-xl font-bold text-gray-800 dark:text-white">
+      <!-- Coupon History Card (Item 9 on Mobile) -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-300 p-6">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
             Coupon History
           </h2>
           @if (usedCoupons() > 0) {
-            <button (click)="openHistoryModal()" class="text-sm font-medium text-indigo-600 hover:underline dark:text-indigo-400 cursor-pointer bg-none border-none">
+            <button (click)="openHistoryModal()" class="text-xs font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors">
               View All History
             </button>
           }
         </div>
 
         @if (redeemedCouponsHistory().length > 0) {
-          <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead>
+          <div class="overflow-x-auto rounded-xl border border-slate-100 dark:border-slate-800">
+            <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800">
+              <thead class="bg-slate-50 dark:bg-slate-950">
                 <tr>
-                  <th scope="col" class="px-4 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
-                  <th scope="col" class="px-4 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Redeemed On</th>
-                  <th scope="col" class="px-4 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Code</th>
+                  <th scope="col" class="px-6 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Type</th>
+                  <th scope="col" class="px-6 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Redeemed On</th>
+                  <th scope="col" class="px-6 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Code</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-gray-150 dark:divide-gray-700">
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
                 @for (coupon of redeemedCouponsHistory().slice(0, 5); track coupon.couponId) {
-                  <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-900/10">
-                    <td class="px-4 py-3 whitespace-nowrap text-sm">
-                      <span [class]="getCouponTypeClass(coupon.couponType)" class="px-2.5 py-1 inline-flex text-xs font-semibold rounded-full capitalize">
+                  <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-950/30 transition-colors">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <span [class]="getCouponTypeClass(coupon.couponType)" class="px-2.5 py-1 inline-flex text-xs font-bold rounded-full capitalize">
                         {{ coupon.couponType }}
                       </span>
                     </td>
-                    <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
+                    <td class="px-6 py-4 whitespace-nowrap text-xs text-slate-500">
                       {{ formatDateTime(coupon.redeemDate) }}
                     </td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm font-mono font-bold text-gray-700 dark:text-gray-300">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-mono font-bold text-slate-700 dark:text-slate-300">
                       {{ coupon.redemptionCode }}
                     </td>
                   </tr>
@@ -276,102 +393,104 @@
             </table>
           </div>
         } @else {
-          <p class="text-gray-500 dark:text-gray-400 text-sm py-4 text-center">No coupons redeemed yet.</p>
+          <div class="text-center py-8 bg-slate-50 dark:bg-slate-950 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+            <p class="text-slate-400 dark:text-slate-500 text-sm">No coupons redeemed yet.</p>
+          </div>
         }
       </div>
 
     </div>
   </div>
 
+  <!-- ========================================== -->
+  <!-- MODALS AND POPUPS                          -->
+  <!-- ========================================== -->
+
   <!-- Redeem Coupon Modal -->
   @if (isRedeemModalOpen() && selectedCouponForRedemption(); as coupon) {
-    <div class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 w-full max-w-sm text-center">
-        <h3 class="text-xl font-bold mb-2 text-gray-800 dark:text-white">
-          Redeem Your Coupon
+    <div class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+      <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xl p-8 w-full max-w-sm text-center">
+        <h3 class="text-xl font-extrabold text-slate-900 dark:text-white mb-2">
+          Redeem {{ coupon.couponType }}
         </h3>
-        <p class="text-gray-600 dark:text-gray-400 mb-6">
-          Show this QR code to the canteen staff.
+        <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">
+          Show this QR code to the canteen staff to scan.
         </p>
 
-        <div class="p-2 bg-white inline-block rounded-lg">
+        <div class="inline-block p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800 mb-6">
           @if (qrCodeDataUrl()) {
-            <img [src]="qrCodeDataUrl()" alt="Redemption QR Code" class="w-56 h-56 mx-auto" />
+            <img [src]="qrCodeDataUrl()" alt="Redemption QR Code" class="w-48 h-48 mx-auto rounded-xl shadow-sm border border-white bg-white p-2" referrerpolicy="no-referrer" />
           } @else {
-            <div class="w-56 h-56 bg-gray-200 dark:bg-gray-700 flex items-center justify-center rounded-md">
-              <p class="text-sm text-gray-500 dark:text-gray-400">
-                Generating QR Code...
-              </p>
+            <div class="w-48 h-48 bg-slate-100 dark:bg-slate-800 flex items-center justify-center rounded-xl">
+              <span class="text-sm text-slate-400 animate-pulse">Generating QR Code...</span>
             </div>
           }
         </div>
 
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-4 mb-4">
-          Or use the code below:
+        <p class="text-xs text-slate-400 dark:text-slate-500 mb-2">
+          Or use this manual backup code:
         </p>
 
-        <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 mb-6">
-          <p class="text-4xl font-mono font-bold tracking-widest text-indigo-600 dark:text-indigo-400">
+        <div class="bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800 p-4 mb-6">
+          <p class="text-3xl font-mono font-extrabold tracking-widest text-indigo-600 dark:text-indigo-400">
             {{ coupon.redemptionCode }}
           </p>
         </div>
 
-        <p class="text-xs text-gray-500 dark:text-gray-500 mb-6">
-          Coupon ID: {{ coupon.couponId }} ({{ coupon.couponType }})
+        <p class="text-[10px] text-slate-400 mb-6">
+          Coupon ID: {{ coupon.couponId }}
         </p>
 
-        <div class="mt-8">
-          <button type="button" (click)="closeRedeemModal()" class="w-full px-6 py-3 rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 font-semibold">
-            Done
-          </button>
-        </div>
+        <button type="button" (click)="closeRedeemModal()" class="w-full inline-flex items-center justify-center px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-sm transition-all duration-200">
+          Done
+        </button>
       </div>
     </div>
   }
 
-  <!-- Generate Guest Pass (Request) Modal -->
+  <!-- Request Guest Pass Modal -->
   @if (isGenerateGuestPassModalOpen()) {
-    <div class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 w-full max-w-md text-left">
-        <h3 class="text-xl font-bold mb-2 text-gray-800 dark:text-white">
+    <div class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+      <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xl p-8 w-full max-w-md">
+        <h3 class="text-xl font-extrabold text-slate-900 dark:text-white mb-2">
           Request Guest Pass
         </h3>
-        <p class="text-gray-600 dark:text-gray-400 mb-6">
-          Enter your guest details and submit a request. Admin will review and approve.
+        <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">
+          Enter guest details. After employee approval/request, passes will be generated.
         </p>
 
         @if (requestError()) {
-          <div class="mb-4 p-3 rounded-md bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-700 text-sm text-red-700 dark:text-red-200">
+          <div class="mb-4 p-4 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/30 text-sm text-rose-700 dark:text-rose-400">
             {{ requestError() }}
           </div>
         }
         @if (requestSuccess()) {
-          <div class="mb-4 p-3 rounded-md bg-green-50 dark:bg-green-900/50 border border-green-200 dark:border-green-700 text-sm text-green-700 dark:text-green-200">
+          <div class="mb-4 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/30 text-sm text-emerald-700 dark:text-emerald-400">
             {{ requestSuccess() }}
           </div>
         }
 
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
               Guest Full Name
             </label>
-            <input type="text" class="w-full p-2.5 border rounded-lg dark:bg-gray-700 dark:border-gray-600" [value]="guestName()" (input)="guestName.set($any($event.target).value)" placeholder="Enter guest name" />
+            <input type="text" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none" [value]="guestName()" (input)="guestName.set($any($event.target).value)" placeholder="Enter guest's full name" />
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
               Guest Company
             </label>
-            <input type="text" class="w-full p-2.5 border rounded-lg dark:bg-gray-700 dark:border-gray-600" [value]="guestCompany()" (input)="guestCompany.set($any($event.target).value)" placeholder="Enter company name" />
+            <input type="text" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none" [value]="guestCompany()" (input)="guestCompany.set($any($event.target).value)" placeholder="Enter guest's company name" />
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Coupon Type
+            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+              Meal Type
             </label>
-            <select class="w-full p-2.5 border rounded-lg dark:bg-gray-700 dark:border-gray-600" [value]="selectedGuestCouponType() || ''" (change)="selectedGuestCouponType.set($any($event.target).value)">
-              <option value="" disabled>Select coupon type</option>
+            <select class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none" [value]="selectedGuestCouponType() || ''" (change)="selectedGuestCouponType.set($any($event.target).value)">
+              <option value="" disabled>Select meal type</option>
               @for (type of guestPassTypes; track type) {
                 <option [value]="type">{{ type }}</option>
               }
@@ -380,10 +499,10 @@
         </div>
 
         <div class="mt-8 flex justify-end space-x-3">
-          <button type="button" (click)="closeGenerateGuestPassModal()" class="px-4 py-2 rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600">
+          <button type="button" (click)="closeGenerateGuestPassModal()" class="px-5 py-3 rounded-xl text-slate-700 bg-slate-100 hover:bg-slate-200 dark:text-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 font-semibold transition-colors">
             Cancel
           </button>
-          <button type="button" (click)="submitGuestPassRequest()" [disabled]="requestSubmitting()" class="px-4 py-2 rounded-md text-white bg-teal-600 hover:bg-teal-700 disabled:bg-teal-400">
+          <button type="button" (click)="submitGuestPassRequest()" [disabled]="requestSubmitting()" class="px-5 py-3 rounded-xl text-white bg-teal-600 hover:bg-teal-700 disabled:bg-teal-400 font-semibold transition-all duration-200 shadow-sm flex items-center justify-center">
             @if (!requestSubmitting()) { Submit Request } @else { Submitting... }
           </button>
         </div>
@@ -393,52 +512,45 @@
 
   <!-- Redeemed History Modal -->
   @if (isHistoryModalOpen()) {
-    <div class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 animate-fadeIn">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-2xl text-left flex flex-col m-4">
-        <div class="flex justify-between items-center mb-4 border-b border-gray-200 dark:border-gray-700 pb-4">
-          <h3 class="text-xl font-bold text-gray-800 dark:text-white">
+    <div class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+      <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xl p-6 w-full max-w-2xl text-left flex flex-col m-4">
+        <div class="flex justify-between items-center mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">
+          <h3 class="text-xl font-extrabold text-slate-900 dark:text-white">
             Redeemed Coupon History
           </h3>
-          <button (click)="closeHistoryModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+          <button (click)="closeHistoryModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-950 transition-colors">
             <span class="sr-only">Close</span>
             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-        <div class="overflow-y-auto max-h-[60vh]">
-          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50 dark:bg-gray-700/50 sticky top-0">
+        
+        <div class="overflow-y-auto max-h-[60vh] rounded-xl border border-slate-100 dark:border-slate-800">
+          <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800">
+            <thead class="bg-slate-50 dark:bg-slate-950 sticky top-0 z-10">
               <tr>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Coupon Type
-                </th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Redeemed On
-                </th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Redemption Code
-                </th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Coupon ID
-                </th>
+                <th scope="col" class="px-6 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Coupon Type</th>
+                <th scope="col" class="px-6 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Redeemed On</th>
+                <th scope="col" class="px-6 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Redemption Code</th>
+                <th scope="col" class="px-6 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Coupon ID</th>
               </tr>
             </thead>
-            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody class="bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
               @for (coupon of redeemedCouponsHistory(); track coupon.couponId) {
-                <tr>
+                <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-950/20 transition-colors">
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <span [class]="getCouponTypeClass(coupon.couponType)" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full capitalize">
+                    <span [class]="getCouponTypeClass(coupon.couponType)" class="px-2.5 py-1 inline-flex text-xs font-bold rounded-full capitalize">
                       {{ coupon.couponType }}
                     </span>
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
                     {{ formatDateTime(coupon.redeemDate) }}
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-700 dark:text-gray-300 font-bold">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-mono font-bold text-slate-700 dark:text-slate-300">
                     {{ coupon.redemptionCode }}
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500 dark:text-gray-400">
+                  <td class="px-6 py-4 whitespace-nowrap text-xs font-mono text-slate-400">
                     {{ coupon.couponId }}
                   </td>
                 </tr>
@@ -446,8 +558,9 @@
             </tbody>
           </table>
         </div>
-        <div class="mt-6 text-right border-t border-gray-200 dark:border-gray-700 pt-4">
-          <button type="button" (click)="closeHistoryModal()" class="px-6 py-2 rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 font-semibold">
+        
+        <div class="mt-6 text-right border-t border-slate-100 dark:border-slate-800 pt-4">
+          <button type="button" (click)="closeHistoryModal()" class="px-6 py-2.5 rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 font-semibold shadow-sm transition-colors">
             Close
           </button>
         </div>
@@ -455,71 +568,70 @@
     </div>
   }
 
-  <!-- Generated Guest Pass History Modal -->
+  <!-- Guest Pass History Modal -->
   @if (isGuestHistoryModalOpen()) {
-    <div class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 animate-fadeIn">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-4xl text-left flex flex-col m-4">
-        <div class="flex justify-between items-center mb-4 border-b border-gray-200 dark:border-gray-700 pb-4">
-          <h3 class="text-xl font-bold text-gray-800 dark:text-white">
+    <div class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+      <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xl p-6 w-full max-w-4xl text-left flex flex-col m-4">
+        <div class="flex justify-between items-center mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">
+          <h3 class="text-xl font-extrabold text-slate-900 dark:text-white">
             Guest Pass History
           </h3>
-          <button (click)="closeGuestHistoryModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+          <button (click)="closeGuestHistoryModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-950 transition-colors">
             <span class="sr-only">Close</span>
             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
+        
         <div class="overflow-y-auto max-h-[60vh]">
-          <h4 class="text-lg font-semibold mb-3 text-purple-600">
-            Guest Requests History
+          <h4 class="text-md font-bold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-teal-500"></span>
+            Guest Pass Requests &amp; Approvals
           </h4>
           
-          <table class="min-w-full mb-6 border">
-            <thead>
-              <tr>
-                <th class="border px-3 py-2">Guest Name</th>
-                <th class="border px-3 py-2">Company</th>
-                <th class="border px-3 py-2">Meal Type</th>
-                <th class="border px-3 py-2">Requested By</th>
-                <th class="border px-3 py-2">Status</th>
-                <th class="border px-3 py-2">Request Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (request of guestPassRequestsHistory(); track request.id) {
+          <div class="overflow-x-auto rounded-xl border border-slate-100 dark:border-slate-800">
+            <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800">
+              <thead class="bg-slate-50 dark:bg-slate-950">
                 <tr>
-                  <td class="border px-3 py-2">
-                    {{ request.guestName }}
-                  </td>
-                  <td class="border px-3 py-2">
-                    {{ request.guestCompany }}
-                  </td>
-                  <td class="border px-3 py-2">
-                    {{ request.couponType }}
-                  </td>
-                  <td class="border px-3 py-2">
-                    {{ request.requestedBy === 'canteen_manager' ? 'Canteen Manager' : 'Employee' }}
-                  </td>
-                  <td class="border px-3 py-2">
-                    @if (request.requestedBy === 'employee' && request.status === 'approved') {
-                      <button (click)="openGuestQrFromRequest(request)" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1 rounded">
-                        View QR
-                      </button>
-                    } @else {
-                      {{ request.status }}
-                    }
-                  </td>
-                  <td class="border px-3 py-2">
-                    {{ formatDateTime(request.requestDate) }}
-                  </td>
+                  <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Guest Name</th>
+                  <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Company</th>
+                  <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Meal Type</th>
+                  <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Requested By</th>
+                  <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Status</th>
+                  <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Request Date</th>
                 </tr>
-              }
-            </tbody>
-          </table>
+              </thead>
+              <tbody class="bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
+                @for (request of guestPassRequestsHistory(); track request.id) {
+                  <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-950/20 transition-colors">
+                    <td class="px-4 py-3 text-sm text-slate-900 dark:text-slate-100 font-semibold">{{ request.guestName }}</td>
+                    <td class="px-4 py-3 text-sm text-slate-500">{{ request.guestCompany }}</td>
+                    <td class="px-4 py-3 text-sm text-slate-500">{{ request.couponType }}</td>
+                    <td class="px-4 py-3 text-xs text-slate-500">
+                      {{ request.requestedBy === 'canteen_manager' ? 'Canteen Manager' : 'Employee' }}
+                    </td>
+                    <td class="px-4 py-3 text-sm">
+                      @if (request.requestedBy === 'employee' && request.status === 'approved') {
+                        <button (click)="openGuestQrFromRequest(request)" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors shadow-sm">
+                          View QR
+                        </button>
+                      } @else {
+                        <span class="capitalize text-xs font-semibold px-2 py-1 rounded-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400">
+                          {{ request.status }}
+                        </span>
+                      }
+                    </td>
+                    <td class="px-4 py-3 text-xs text-slate-400">{{ formatDateTime(request.requestDate) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div class="mt-6 text-right border-t border-gray-200 dark:border-gray-700 pt-4">
-          <button type="button" (click)="closeGuestHistoryModal()" class="px-6 py-2 rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 font-semibold">
+        
+        <div class="mt-6 text-right border-t border-slate-100 dark:border-slate-800 pt-4">
+          <button type="button" (click)="closeGuestHistoryModal()" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-sm transition-colors">
             Close
           </button>
         </div>
@@ -529,102 +641,90 @@
 
   <!-- View Guest Pass QR Modal -->
   @if (isGuestQrModalOpen() && selectedGuestCouponForQr(); as coupon) {
-    <div class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 w-full max-w-sm text-center">
-        <h3 class="text-xl font-bold mb-2 text-gray-800 dark:text-white">
+    <div class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+      <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xl p-8 w-full max-w-sm text-center">
+        <h3 class="text-xl font-extrabold text-slate-900 dark:text-white mb-2">
           Guest Pass Details
         </h3>
-        <p class="text-gray-600 dark:text-gray-400 mb-6">
-          Share this QR code with your guest.
+        <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">
+          Share this QR code with your guest for redemption.
         </p>
 
-        <div class="p-2 bg-white inline-block rounded-lg">
+        <div class="inline-block p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800 mb-6">
           @if (guestPassQrCodeDataUrl()) {
-            <img [src]="guestPassQrCodeDataUrl()" alt="Guest Pass QR Code" class="w-56 h-56 mx-auto" />
+            <img [src]="guestPassQrCodeDataUrl()" alt="Guest Pass QR Code" class="w-48 h-48 mx-auto rounded-xl shadow-sm border border-white bg-white p-2" referrerpolicy="no-referrer" />
           } @else {
-            <div class="w-56 h-56 bg-gray-200 dark:bg-gray-700 flex items-center justify-center rounded-md">
-              <p class="text-sm text-gray-500 dark:text-gray-400">
-                Generating QR Code...
-              </p>
+            <div class="w-48 h-48 bg-slate-100 dark:bg-slate-800 flex items-center justify-center rounded-xl">
+              <span class="text-sm text-slate-400 animate-pulse">Generating QR Code...</span>
             </div>
           }
         </div>
 
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-4 mb-4">
-          Or use the code below:
+        <p class="text-xs text-slate-400 dark:text-slate-500 mb-2">
+          Or copy the manual redemption code:
         </p>
 
-        <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 mb-4">
-          <p class="text-4xl font-mono font-bold tracking-widest text-teal-600 dark:text-teal-400">
+        <div class="bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800 p-4 mb-4">
+          <p class="text-3xl font-mono font-extrabold tracking-widest text-teal-600 dark:text-teal-400">
             {{ coupon.redemptionCode }}
           </p>
         </div>
 
-        <p class="text-xs text-gray-500 dark:text-gray-500 mb-4">
-          This is a single-use {{ coupon.couponType }} guest pass.
+        <p class="text-[11px] text-slate-400 dark:text-slate-500 mb-6 leading-relaxed">
+          This is a single-use <b class="text-teal-600 dark:text-teal-400">{{ coupon.couponType }}</b> guest pass.
         </p>
 
-        <div class="mt-4 grid grid-cols-2 gap-3">
-          <!-- Copy code -->
-          <button type="button" (click)="copyCodeToClipboard(coupon.redemptionCode)" class="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-all">
+        <div class="grid grid-cols-2 gap-3 mb-6">
+          <!-- Copy Code Button -->
+          <button type="button" (click)="copyCodeToClipboard(coupon.redemptionCode)" class="inline-flex justify-center items-center px-3 py-2.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
             @if (!copySuccess()) {
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
               Copy Code
             } @else {
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5 mr-1.5 text-emerald-500" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
               </svg>
-              <span class="text-green-600 dark:text-green-400">Copied!</span>
+              Copied!
             }
           </button>
 
-          <!-- WhatsApp share -->
-          <a [href]="'https://wa.me/?text=' + whatsAppShareMessage()" target="_blank" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+          <!-- Share on WhatsApp Button -->
+          <a [href]="'https://wa.me/?text=' + whatsAppShareMessage()" target="_blank" class="inline-flex justify-center items-center px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl transition-colors shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5 mr-1.5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.487 5.235 3.487 8.413 0 6.557-5.338 11.892-11.894 11.892-1.99 0-3.903-.52-5.687-1.475L0 24h.057zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.886-.001 2.267.655 4.398 1.908 6.166l-1.138 4.167 4.274-1.12z" />
             </svg>
-            Share on WhatsApp
+            WhatsApp
           </a>
         </div>
 
-        <div class="mt-8">
-          <button type="button" (click)="closeGuestQrModal()" class="w-full px-6 py-3 rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 font-semibold">
-            Done
-          </button>
-        </div>
+        <button type="button" (click)="closeGuestQrModal()" class="w-full inline-flex items-center justify-center px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-sm transition-colors">
+          Done
+        </button>
       </div>
     </div>
   }
 
   <!-- Approve Guest Popup -->
   @if (isApproveGuestPopupOpen() && selectedGuestRequest(); as request) {
-    <div class="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6">
-        <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4">
+    <div class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+      <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xl w-full max-w-md p-6">
+        <h2 class="text-xl font-extrabold text-slate-900 dark:text-white mb-4">
           Approve Guest Pass
         </h2>
-        <div class="space-y-3">
-          <div>
-            <span class="font-semibold">Guest :</span> {{ request.guestName }}
-          </div>
-          <div>
-            <span class="font-semibold">Company :</span> {{ request.guestCompany }}
-          </div>
-          <div>
-            <span class="font-semibold">Meal :</span> {{ request.couponType }}
-          </div>
-          <div>
-            <span class="font-semibold">Employee :</span> {{ request.employeeName }}
-          </div>
+        <div class="space-y-3 bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-800/50 mb-6">
+          <div class="flex justify-between text-sm"><span class="text-slate-400">Guest Name:</span> <span class="font-bold text-slate-950 dark:text-slate-100">{{ request.guestName }}</span></div>
+          <div class="flex justify-between text-sm"><span class="text-slate-400">Company:</span> <span class="font-bold text-slate-950 dark:text-slate-100">{{ request.guestCompany }}</span></div>
+          <div class="flex justify-between text-sm"><span class="text-slate-400">Meal Type:</span> <span class="font-bold text-slate-950 dark:text-slate-100">{{ request.couponType }}</span></div>
+          <div class="flex justify-between text-sm"><span class="text-slate-400">Requested By:</span> <span class="font-bold text-slate-950 dark:text-slate-100">{{ request.requestedBy === 'canteen_manager' ? 'Canteen Manager' : 'Employee' }}</span></div>
         </div>
-        <div class="mt-6 flex justify-end gap-3">
-          <button (click)="closeApproveGuestPopup()" class="px-5 py-2 rounded-lg border border-gray-300 dark:border-gray-600">
+        <div class="flex justify-end gap-3">
+          <button (click)="closeApproveGuestPopup()" class="px-5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold transition-colors">
             Cancel
           </button>
-          <button (click)="confirmApproveGuestRequest()" class="px-5 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white">
-            Approve
+          <button (click)="confirmApproveGuestRequest()" class="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm transition-colors">
+            Approve &amp; Send Pass
           </button>
         </div>
       </div>
