@@ -113,8 +113,7 @@ export class DataService implements OnDestroy {
 
   todaysRedeemedCoupons = computed(() => {
 
-    const todayStr =
-      new Date().toISOString().split('T')[0];
+    const todayStr = new Date().toISOString().split('T')[0];
   
     const couponRedeemed =
       this._coupons().filter(
@@ -1629,47 +1628,50 @@ if (
             // For UI display feedback
             const displayMessage = `Guest Pass Redeemed for ${guestName} (${guestCompany}) (requested by ${hostName}).`;
 
-            const updatedCoupon: Coupon = {
-              ...sbCoupon,
-              status: 'redeemed',
-              redeemDate: new Date().toISOString(),
-            };
-
-            await this.couponRepository.upsert(updatedCoupon);
-
-            // Record punch event
             const punchEventId = `CODE-${Date.now()}`;
-            const newPunchEvent: PunchEvent = {
-              id: punchEventId,
-              employeeId: sbCoupon.sharedByEmployeeId || 0,
-              resultType: 'redeemed',
-              message: successMessage,
-              createdAt: updatedCoupon.redeemDate
-            };
-            await this.punchEventRepository.upsert(newPunchEvent);
+            const rpcResult = await this.supabaseService.rpc('redeem_coupon_atomic', {
+              p_coupon_id: sbCoupon.couponId,
+              p_employee_id: sbCoupon.sharedByEmployeeId || null,
+              p_meal_type: null,
+              p_punch_event_id: punchEventId,
+              p_notif_id: null,
+              p_success_message: successMessage
+            });
 
-            this._coupons.update((coupons) =>
-              coupons.map((c) =>
-                c.couponId === sbCoupon.couponId ? updatedCoupon : c
-              )
-            );
-
-            // Update Guest Coupon Request status to redeemed
-            const requestToUpdate = this._guestCouponRequests().find(r => r.generatedCouponId === sbCoupon.couponId);
-            if (requestToUpdate) {
-              const updatedRequest = {
-                ...requestToUpdate,
-                status: 'redeemed' as const,
-                servedDate: updatedCoupon.redeemDate
+            if (rpcResult && rpcResult.success) {
+              const updatedCoupon: Coupon = {
+                ...sbCoupon,
+                status: 'redeemed',
+                redeemDate: rpcResult.redeem_date || new Date().toISOString(),
               };
-              await this.guestCouponRequestRepository.upsert(updatedRequest);
-              
-              this._guestCouponRequests.update(reqs => 
-                reqs.map(r => r.id === updatedRequest.id ? updatedRequest : r)
-              );
-            }
 
-            return { success: true, message: displayMessage };
+              this._coupons.update((coupons) =>
+                coupons.map((c) =>
+                  c.couponId === sbCoupon.couponId ? updatedCoupon : c
+                )
+              );
+
+              // Update Guest Coupon Request status to redeemed
+              const requestToUpdate = this._guestCouponRequests().find(r => r.generatedCouponId === sbCoupon.couponId);
+              if (requestToUpdate) {
+                const updatedRequest = {
+                  ...requestToUpdate,
+                  status: 'redeemed' as const,
+                  servedDate: updatedCoupon.redeemDate
+                };
+                
+                this._guestCouponRequests.update(reqs => 
+                  reqs.map(r => r.id === updatedRequest.id ? updatedRequest : r)
+                );
+              }
+
+              return { success: true, message: displayMessage };
+            } else {
+              return {
+                success: false,
+                message: rpcResult?.message || 'Redemption failed.',
+              };
+            }
           }
 
           if (!sbCoupon.employeeId) {
@@ -1690,39 +1692,74 @@ if (
             };
           }
 
-          const updatedCoupon: Coupon = {
-            ...sbCoupon,
-            status: 'redeemed',
-            redeemDate: new Date().toISOString(),
-          };
+          // Decide p_meal_type based on the coupon type and current hour
+          let p_meal_type: string | null = null;
+          if (sbCoupon.couponType === 'Breakfast') {
+            p_meal_type = 'morning';
+          } else if (sbCoupon.couponType === 'Lunch/Dinner') {
+            const hour = new Date().getHours();
+            p_meal_type = hour >= 15 ? 'dinner' : 'lunch';
+          } else {
+            p_meal_type = 'evening';
+          }
 
-          await this.couponRepository.upsert(updatedCoupon);
-
-          const msg = `Coupon redeemed successfully for ${employee?.name}.`;
-
-          // Record punch event
           const punchEventId = `CODE-${Date.now()}`;
-          const newPunchEvent: PunchEvent = {
-            id: punchEventId,
-            employeeId: employee?.id || 0,
-            resultType: 'redeemed',
-            message: msg,
-            createdAt: updatedCoupon.redeemDate
-          };
-          await this.punchEventRepository.upsert(newPunchEvent);
+          const notifId = `NOTIF-${Date.now()}`;
+          const successMsg = `Coupon redeemed successfully for ${employee?.name}.`;
 
-          this._coupons.update((coupons) =>
-            coupons.map((c) =>
-              c.couponId === sbCoupon.couponId ? updatedCoupon : c
-            )
-          );
+          const rpcResult = await this.supabaseService.rpc('redeem_coupon_atomic', {
+            p_coupon_id: sbCoupon.couponId,
+            p_employee_id: employee?.id || null,
+            p_meal_type: p_meal_type,
+            p_punch_event_id: punchEventId,
+            p_notif_id: notifId,
+            p_success_message: successMsg
+          });
 
-          // Fallback removed
+          if (rpcResult && rpcResult.success) {
+            const updatedCoupon: Coupon = {
+              ...sbCoupon,
+              status: 'redeemed',
+              redeemDate: rpcResult.redeem_date || new Date().toISOString(),
+            };
 
-          return {
-            success: true,
-            message: msg,
-          };
+            const today = new Date().toISOString().split('T')[0];
+            const updatedEmployee: Employee = { 
+              ...employee!,
+              lastRedeemedDate: updatedCoupon.redeemDate
+            };
+            if (p_meal_type === 'morning') {
+              updatedEmployee.lastMorningBreakfastDate = today;
+            } else if (p_meal_type === 'lunch') {
+              updatedEmployee.lastLunchDate = today;
+            } else if (p_meal_type === 'evening') {
+              updatedEmployee.lastEveningBreakfastDate = today;
+            } else if (p_meal_type === 'dinner') {
+              updatedEmployee.lastDinnerDate = today;
+            }
+
+            this._coupons.update((coupons) =>
+              coupons.map((c) =>
+                c.couponId === sbCoupon.couponId ? updatedCoupon : c
+              )
+            );
+
+            this._employees.update((employees) =>
+              employees.map((e) =>
+                e.id === employee!.id ? updatedEmployee : e
+              )
+            );
+
+            return {
+              success: true,
+              message: successMsg,
+            };
+          } else {
+            return {
+              success: false,
+              message: rpcResult?.message || 'Redemption failed.',
+            };
+          }
         }
       } catch (err) {
         console.error('Supabase coupon check/redemption by code failed, falling back to local:', err);
@@ -1964,10 +2001,13 @@ if (
       const updatedCoupon: Coupon = {
         ...availableCoupon,
         status: 'redeemed',
-        redeemDate: now.toISOString(),
+        redeemDate: new Date().toISOString(),
       };
 
-      const updatedEmployee: Employee = { ...employee };
+      const updatedEmployee: Employee = { 
+        ...employee,
+        lastRedeemedDate: new Date().toISOString()
+      };
       if (mealWindow === 'morning') {
         updatedEmployee.lastMorningBreakfastDate = today;
       } else if (mealWindow === 'lunch') {
@@ -1979,63 +2019,51 @@ if (
       }
 
       if (isSupabaseConfigured()) {
-        const originalCoupon = { ...availableCoupon };
-        const originalEmployee = { ...employee };
+        const successMsg = `${availableCoupon.couponType} coupon redeemed for ${employee.name}`;
+        const notifId = `NOTIF-${Date.now()}`;
 
-        // 1. Update coupon
         try {
-          await this.couponRepository.upsert(updatedCoupon);
-        } catch (err) {
-          console.error('Failed to update coupon in Supabase:', err);
-          return { success: false, message: 'Database error while redeeming coupon in Supabase.' };
-        }
+          const rpcResult = await this.supabaseService.rpc('redeem_coupon_atomic', {
+            p_coupon_id: availableCoupon.couponId,
+            p_employee_id: employee.id,
+            p_meal_type: mealWindow,
+            p_punch_event_id: punchEventId,
+            p_notif_id: notifId,
+            p_success_message: successMsg
+          });
 
-        // 2. Update employee
-        try {
-          await this.employeeRepository.upsert(updatedEmployee);
-        } catch (err) {
-          console.error('Failed to update employee last redeemed dates in Supabase. Rolling back coupon update...', err);
-          try {
-            await this.couponRepository.upsert(originalCoupon);
-          } catch (rollbackErr) {
-            console.error('CRITICAL: Failed to rollback coupon update in Supabase!', rollbackErr);
+          if (!rpcResult || !rpcResult.success) {
+            return {
+              success: false,
+              message: rpcResult?.message || 'Redemption failed or already redeemed.'
+            };
           }
-          return { success: false, message: 'Database error while updating employee in Supabase.' };
-        }
 
-        // 3. Save punch event
-        try {
-          const newPunchEvent: PunchEvent = {
-            id: punchEventId,
-            employeeId: employee.id,
-            resultType: 'redeemed',
-            message: `${availableCoupon.couponType} coupon redeemed for ${employee.name}`,
-            createdAt: now.toISOString()
+          // All Supabase operations succeeded, update local state
+          const finalCoupon: Coupon = {
+            ...updatedCoupon,
+            redeemDate: rpcResult.redeem_date || updatedCoupon.redeemDate
           };
-          await this.punchEventRepository.upsert(newPunchEvent);
-        } catch (err) {
-          console.error('Failed to save punch event in Supabase. Rolling back coupon and employee updates...', err);
-          try {
-            await this.employeeRepository.upsert(originalEmployee);
-            await this.couponRepository.upsert(originalCoupon);
-          } catch (rollbackErr) {
-            console.error('CRITICAL: Failed to rollback updates in Supabase!', rollbackErr);
-          }
-          return { success: false, message: 'Database error while recording punch event in Supabase.' };
+          const finalEmployee: Employee = {
+            ...updatedEmployee,
+            lastRedeemedDate: rpcResult.redeem_date || updatedEmployee.lastRedeemedDate
+          };
+
+          this._coupons.update((coupons) =>
+            coupons.map((c) => (c.couponId === availableCoupon.couponId ? finalCoupon : c))
+          );
+          this._employees.update((employees) =>
+            employees.map((e) => (e.id === employee!.id ? finalEmployee : e))
+          );
+
+          return {
+            success: true,
+            message: `${availableCoupon.couponType} coupon redeemed successfully for ${employee.name}`,
+          };
+        } catch (err: any) {
+          console.error('Failed to redeem coupon atomically in Supabase:', err);
+          return { success: false, message: err?.message || 'Database error while redeeming coupon atomically in Supabase.' };
         }
-
-        // All Supabase operations succeeded, update local state
-        this._coupons.update((coupons) =>
-          coupons.map((c) => (c.couponId === availableCoupon.couponId ? updatedCoupon : c))
-        );
-        this._employees.update((employees) =>
-          employees.map((e) => (e.id === employee!.id ? updatedEmployee : e))
-        );
-
-        return {
-          success: true,
-          message: `${availableCoupon.couponType} coupon redeemed successfully for ${employee.name}`,
-        };
       }
 
       // If Supabase isn't active, log error as it's required.
@@ -2353,8 +2381,7 @@ if (
     mealType: 'morning' | 'lunch' | 'evening' | 'dinner'
   ): { success: boolean; message: string } {
   
-    const todayStr =
-      new Date().toISOString().split('T')[0];
+    const todayStr = new Date().toISOString().split('T')[0];
   
     const alreadyExists =
       this._pendingMealRequests().some(

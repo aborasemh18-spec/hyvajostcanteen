@@ -232,3 +232,124 @@ CREATE INDEX idx_notifications_created_at ON notifications(created_at);
 -- Punch events log
 CREATE INDEX idx_punch_events_employee_id ON punch_events(employee_id);
 CREATE INDEX idx_punch_events_created_at ON punch_events(created_at);
+
+-- =========================================================================
+-- 10. ATOMIC COUPON REDEMPTION WITH ROW LOCKING
+-- =========================================================================
+
+CREATE OR REPLACE FUNCTION redeem_coupon_atomic(
+    p_coupon_id TEXT,
+    p_employee_id BIGINT,
+    p_meal_type TEXT, -- 'morning', 'lunch', 'evening', 'dinner', or NULL
+    p_punch_event_id TEXT,
+    p_notif_id TEXT,
+    p_success_message TEXT
+) RETURNS JSONB AS $$
+DECLARE
+    v_coupon_status TEXT;
+    v_coupon_type TEXT;
+    v_employee_status TEXT;
+    v_last_morning_date DATE;
+    v_last_lunch_date DATE;
+    v_last_evening_date DATE;
+    v_last_dinner_date DATE;
+    v_today DATE := (NOW() AT TIME ZONE 'Asia/Kolkata')::DATE;
+    v_now TIMESTAMPTZ := NOW();
+BEGIN
+    -- 1. Acquire row lock on the coupon and retrieve its current status
+    SELECT status, coupon_type INTO v_coupon_status, v_coupon_type
+    FROM coupons
+    WHERE coupon_id = p_coupon_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('success', false, 'message', 'Coupon not found');
+    END IF;
+
+    IF v_coupon_status = 'redeemed' THEN
+        RETURN jsonb_build_object('success', false, 'message', 'Already Redeemed');
+    END IF;
+
+    IF v_coupon_status = 'expired' THEN
+        RETURN jsonb_build_object('success', false, 'message', 'This coupon is expired');
+    END IF;
+
+    -- 2. Retrieve and lock the employee row (if employee_id is specified)
+    IF p_employee_id IS NOT NULL AND p_employee_id > 0 THEN
+        SELECT status, 
+               (last_morning_breakfast_date AT TIME ZONE 'Asia/Kolkata')::DATE, 
+               (last_lunch_date AT TIME ZONE 'Asia/Kolkata')::DATE, 
+               (last_evening_breakfast_date AT TIME ZONE 'Asia/Kolkata')::DATE, 
+               (last_dinner_date AT TIME ZONE 'Asia/Kolkata')::DATE
+        INTO v_employee_status, 
+             v_last_morning_date, 
+             v_last_lunch_date, 
+             v_last_evening_date, 
+             v_last_dinner_date
+        FROM employees
+        WHERE id = p_employee_id
+        FOR UPDATE;
+
+        IF NOT FOUND THEN
+            RETURN jsonb_build_object('success', false, 'message', 'Employee not found');
+        END IF;
+
+        IF v_employee_status = 'deactivated' THEN
+            RETURN jsonb_build_object('success', false, 'message', 'Employee account is deactivated');
+        END IF;
+
+        -- 3. Check for double-redemption of same meal type today
+        IF p_meal_type IS NOT NULL THEN
+            IF p_meal_type = 'morning' AND v_last_morning_date = v_today THEN
+                RETURN jsonb_build_object('success', false, 'message', 'Already Redeemed');
+            ELSIF p_meal_type = 'lunch' AND v_last_lunch_date = v_today THEN
+                RETURN jsonb_build_object('success', false, 'message', 'Already Redeemed');
+            ELSIF p_meal_type = 'evening' AND v_last_evening_date = v_today THEN
+                RETURN jsonb_build_object('success', false, 'message', 'Already Redeemed');
+            ELSIF p_meal_type = 'dinner' AND v_last_dinner_date = v_today THEN
+                RETURN jsonb_build_object('success', false, 'message', 'Already Redeemed');
+            END IF;
+        END IF;
+
+        -- 4. Update Employee fields: last_redeemed_date and the meal-specific column
+        UPDATE employees
+        SET last_redeemed_date = v_now,
+            last_morning_breakfast_date = CASE WHEN p_meal_type = 'morning' THEN v_now ELSE last_morning_breakfast_date END,
+            last_lunch_date = CASE WHEN p_meal_type = 'lunch' THEN v_now ELSE last_lunch_date END,
+            last_evening_breakfast_date = CASE WHEN p_meal_type = 'evening' THEN v_now ELSE last_evening_breakfast_date END,
+            last_dinner_date = CASE WHEN p_meal_type = 'dinner' THEN v_now ELSE last_dinner_date END
+        WHERE id = p_employee_id;
+    END IF;
+
+    -- 5. Update Coupon Status to redeemed
+    UPDATE coupons
+    SET status = 'redeemed',
+        redeem_date = v_now
+    WHERE coupon_id = p_coupon_id;
+
+    -- 6. Insert Audit Punch Event
+    IF p_punch_event_id IS NOT NULL THEN
+        INSERT INTO punch_events (id, employee_id, result_type, message, created_at)
+        VALUES (p_punch_event_id, COALESCE(p_employee_id, 0), 'redeemed', p_success_message, v_now);
+    END IF;
+
+    -- 7. Insert Notification
+    IF p_notif_id IS NOT NULL AND p_employee_id IS NOT NULL AND p_employee_id > 0 THEN
+        INSERT INTO notifications (id, employee_id, message, type, is_read, created_at, related_coupon_id)
+        VALUES (p_notif_id, p_employee_id, p_success_message, 'system', FALSE, v_now, p_coupon_id);
+    END IF;
+
+    -- 8. Update guest_coupon_requests if applicable
+    UPDATE guest_coupon_requests
+    SET status = 'redeemed',
+        served_date = v_now
+    WHERE generated_coupon_id = p_coupon_id;
+
+    RETURN jsonb_build_object(
+        'success', true, 
+        'message', p_success_message,
+        'redeem_date', v_now::TEXT
+    );
+END;
+$$ LANGUAGE plpgsql
+SET timezone = 'Asia/Kolkata';
