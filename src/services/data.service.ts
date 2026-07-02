@@ -1891,18 +1891,28 @@ if (
     try {
       let employee: Employee | undefined;
 
-      if (qrText.startsWith('EMP:')) {
-        const employeeId = Number(
-          qrText.replace('EMP:', '').trim()
-        );
-        employee = this._employees().find(
-          e => e.id === employeeId
-        );
-      } else {
-        employee = this._employees().find(
-          e => e.assignedQrCard === qrText
-        );
-      }
+      // Robust lookup supporting: numeric ID, badge string (employeeId), permanentQrCode, or assignedQrCard with or without EMP: prefix
+      const cleanVal = qrText.replace(/^EMP:/i, '').trim();
+      const numericVal = Number(cleanVal);
+
+      employee = this._employees().find(e => {
+        if (e.permanentQrCode === qrText || e.assignedQrCard === qrText) {
+          return true;
+        }
+        if (e.permanentQrCode === cleanVal || e.assignedQrCard === cleanVal) {
+          return true;
+        }
+        if (!isNaN(numericVal) && e.id === numericVal) {
+          return true;
+        }
+        if (e.employeeId && (
+          e.employeeId.toLowerCase() === cleanVal.toLowerCase() ||
+          e.employeeId.toLowerCase() === qrText.toLowerCase()
+        )) {
+          return true;
+        }
+        return false;
+      });
 
       if (!employee) {
         return {
@@ -2083,26 +2093,28 @@ if (
   
     let employee: Employee | undefined;
   
-    if (qrText.startsWith('EMP:')) {
-  
-      const employeeId =
-        Number(
-          qrText.replace('EMP:', '').trim()
-        );
-  
-      employee =
-        this._employees().find(
-          e => e.id === employeeId
-        );
-  
-    } else {
-  
-      employee =
-        this._employees().find(
-          e => e.assignedQrCard === qrText
-        );
-  
-    }
+    // Robust lookup supporting: numeric ID, badge string (employeeId), permanentQrCode, or assignedQrCard with or without EMP: prefix
+    const cleanVal = qrText.replace(/^EMP:/i, '').trim();
+    const numericVal = Number(cleanVal);
+
+    employee = this._employees().find(e => {
+      if (e.permanentQrCode === qrText || e.assignedQrCard === qrText) {
+        return true;
+      }
+      if (e.permanentQrCode === cleanVal || e.assignedQrCard === cleanVal) {
+        return true;
+      }
+      if (!isNaN(numericVal) && e.id === numericVal) {
+        return true;
+      }
+      if (e.employeeId && (
+        e.employeeId.toLowerCase() === cleanVal.toLowerCase() ||
+        e.employeeId.toLowerCase() === qrText.toLowerCase()
+      )) {
+        return true;
+      }
+      return false;
+    });
   
     if (!employee) {
       return null;

@@ -86,9 +86,7 @@ pendingMealType = signal('');
   redeemCouponForm = new FormGroup({
     code: new FormControl('', [
       Validators.required,
-      Validators.minLength(4),
-      Validators.maxLength(4),
-      Validators.pattern('^[0-9]*$'),
+      Validators.minLength(1),
     ]),
   });
 
@@ -125,13 +123,13 @@ pendingMealType = signal('');
     const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
     const onScanSuccess = (decodedText: string) => {
-      if (decodedText.startsWith('EMP:')) {
+      const code = decodedText.trim();
+      const isPermanentQr = code.startsWith('EMP:') || code.toUpperCase().startsWith('EMP') || isNaN(Number(code)) || code.length > 4;
 
-        this.handlePermanentQr(decodedText);
-      
+      if (isPermanentQr) {
+        this.handlePermanentQr(code);
       } else {
-      
-        this.redeemCouponForm.patchValue({ code: decodedText });
+        this.redeemCouponForm.patchValue({ code: code });
         this.handleRedeemCoupon();
       }
       this.hideScanner();
@@ -163,9 +161,17 @@ pendingMealType = signal('');
   async handleRedeemCoupon() {
     if (!this.redeemCouponForm.valid) return;
 
-    const code = this.redeemCouponForm.value.code!;
+    const code = this.redeemCouponForm.value.code!.trim();
     this.redeemStatusMessage.set(null);
     this.hideAlertManually();
+
+    const isPermanentQr = code.startsWith('EMP:') || code.toUpperCase().startsWith('EMP') || isNaN(Number(code)) || code.length > 4;
+
+    if (isPermanentQr) {
+      await this.handlePermanentQr(code);
+      this.redeemCouponForm.reset();
+      return;
+    }
 
     try {
       const result = await this.dataService.redeemCouponByCode(code);
