@@ -27,6 +27,85 @@ export class CanteenManagerDashboardComponent {
   selectedDate = signal(new Date().toISOString().split('T')[0]);
   showGuestPassForm = signal(false);
 
+  // ========= View All Modal state =========
+  viewAllModalOpen = signal(false);
+  viewAllMealType = signal<string | null>(null);
+
+  contractorsObjMap = computed(() => {
+    const map = new Map<number, any>();
+    for (const c of this.dataService.contractors()) {
+      map.set(c.id, c);
+    }
+    return map;
+  });
+
+  employeesObjMap = computed(() => {
+    const map = new Map<number, any>();
+    for (const emp of this.dataService.employees()) {
+      map.set(emp.id, emp);
+    }
+    return map;
+  });
+
+  viewAllList = computed(() => {
+    const type = this.viewAllMealType();
+    if (!type) return [];
+
+    if (type === 'Guest Pass') {
+      return this.guestPassesForDay().map(guest => ({
+        id: guest.id,
+        isGuest: true,
+        guestName: guest.guestName,
+        guestCompany: guest.guestCompany,
+        requestedBy: guest.employeeName,
+        servedTime: this.formatTime(guest.servedDate || null),
+      }));
+    } else {
+      const coupons = this.redeemedCouponsForDay().filter(c => c.couponType === type);
+      const empMap = this.employeesObjMap();
+      const conMap = this.contractorsObjMap();
+
+      return coupons.map(c => {
+        if (c.employeeId) {
+          const emp = empMap.get(c.employeeId);
+          return {
+            id: c.couponId,
+            isGuest: false,
+            name: emp?.name || 'Unknown',
+            badgeId: emp?.employeeId || `ID: ${c.employeeId}`,
+            redeemTime: this.formatTime(c.redeemDate),
+          };
+        } else if (c.contractorId) {
+          const con = conMap.get(c.contractorId);
+          return {
+            id: c.couponId,
+            isGuest: false,
+            name: con?.name || con?.businessName || 'Unknown Contractor',
+            badgeId: con?.contractorId || `Con #${c.contractorId}`,
+            redeemTime: this.formatTime(c.redeemDate),
+          };
+        }
+        return {
+          id: c.couponId,
+          isGuest: false,
+          name: 'Unknown',
+          badgeId: 'N/A',
+          redeemTime: this.formatTime(c.redeemDate),
+        };
+      });
+    }
+  });
+
+  openViewAllModal(type: string) {
+    this.viewAllMealType.set(type);
+    this.viewAllModalOpen.set(true);
+  }
+
+  closeViewAllModal() {
+    this.viewAllModalOpen.set(false);
+    this.viewAllMealType.set(null);
+  }
+
   selectedEmployeeId = signal<number | null>(null);
 
    guestName = signal('');
