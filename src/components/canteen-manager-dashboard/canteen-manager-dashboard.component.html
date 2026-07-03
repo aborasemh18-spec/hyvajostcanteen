@@ -244,55 +244,55 @@
   </div>
 
   <!-- Summary Cards -->
-  <div class="grid grid-cols-1 min-[450px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-    <div class="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-      <h3 class="text-lg font-semibold text-gray-500 dark:text-gray-400">
-        Today's Breakfast Redeemed
+  <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+    <div class="p-3 bg-white dark:bg-gray-800 rounded-lg shadow-md h-24 flex flex-col justify-center">
+      <h3 class="text-xs md:text-lg font-semibold text-gray-500 dark:text-gray-400">
+        Today's Breakfast
       </h3>
-      <p class="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
+      <p class="text-xl md:text-3xl font-bold text-yellow-600 dark:text-yellow-400">
         {{ todayRedeemedBreakfast() }}
       </p>
     </div>
-    <div class="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-      <h3 class="text-lg font-semibold text-gray-500 dark:text-gray-400">
-        Today's Lunch/Dinner Redeemed
+    <div class="p-3 bg-white dark:bg-gray-800 rounded-lg shadow-md h-24 flex flex-col justify-center">
+      <h3 class="text-xs md:text-lg font-semibold text-gray-500 dark:text-gray-400">
+        Today's Lunch/Dinner
       </h3>
-      <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">
+      <p class="text-xl md:text-3xl font-bold text-blue-600 dark:text-blue-400">
         {{ todayRedeemedLunchDinner() }}
       </p>
     </div>
-    <div class="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-      <h3 class="text-lg font-semibold text-gray-500 dark:text-gray-400">
-        Monthly Breakfast Redeemed
+    <div class="p-3 bg-white dark:bg-gray-800 rounded-lg shadow-md h-24 flex flex-col justify-center">
+      <h3 class="text-xs md:text-lg font-semibold text-gray-500 dark:text-gray-400">
+        Monthly Breakfast
       </h3>
-      <p class="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
+      <p class="text-xl md:text-3xl font-bold text-yellow-600 dark:text-yellow-400">
         {{ monthlyRedeemedBreakfast() }}
       </p>
     </div>
-    <div class="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-      <h3 class="text-lg font-semibold text-gray-500 dark:text-gray-400">
-        Monthly Lunch/Dinner Redeemed
+    <div class="p-3 bg-white dark:bg-gray-800 rounded-lg shadow-md h-24 flex flex-col justify-center">
+      <h3 class="text-xs md:text-lg font-semibold text-gray-500 dark:text-gray-400">
+        Monthly Lunch/Dinner
       </h3>
-      <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">
+      <p class="text-xl md:text-3xl font-bold text-blue-600 dark:text-blue-400">
         {{ monthlyRedeemedLunchDinner() }}
       </p>
-          </div>
-          <div class="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-            <h3 class="text-lg font-semibold text-gray-500 dark:text-gray-400">
-              Today's Guest Pass Redeemed
+    </div>
+          <div class="p-3 bg-white dark:bg-gray-800 rounded-lg shadow-md h-24 flex flex-col justify-center">
+            <h3 class="text-xs md:text-lg font-semibold text-gray-500 dark:text-gray-400">
+              Today's Guest Pass
             </h3>
           
-            <p class="text-3xl font-bold text-green-600">
+            <p class="text-xl md:text-3xl font-bold text-green-600">
               {{ todayGuestPassRedeemed() }}
             </p>
           </div>
           
-          <div class="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-            <h3 class="text-lg font-semibold text-gray-500 dark:text-gray-400">
-              Monthly Guest Pass Redeemed
+          <div class="p-3 bg-white dark:bg-gray-800 rounded-lg shadow-md h-24 flex flex-col justify-center">
+            <h3 class="text-xs md:text-lg font-semibold text-gray-500 dark:text-gray-400">
+              Monthly Guest Pass
             </h3>
           
-            <p class="text-3xl font-bold text-purple-600">
+            <p class="text-xl md:text-3xl font-bold text-purple-600">
               {{ monthlyGuestPassRedeemed() }}
             </p>
           </div>    
