@@ -143,7 +143,8 @@ export class SupabaseService {
   realtime<T extends TableName>(
     table: T,
     event: 'INSERT' | 'UPDATE' | 'DELETE' | '*',
-    callback: (payload: RealtimePostgresChangesPayload<Database['public']['Tables'][T]['Row']>) => void
+    callback: (payload: RealtimePostgresChangesPayload<Database['public']['Tables'][T]['Row']>) => void,
+    filter?: string
   ): RealtimeChannel {
     const channelName = `${table}-changes-${Math.random().toString(36).substring(2, 9)}`;
     const channel = this.client
@@ -153,7 +154,8 @@ export class SupabaseService {
         {
           event: event,
           schema: 'public',
-          table: table
+          table: table,
+          filter: filter
         },
         (payload) => {
           callback(payload as any);

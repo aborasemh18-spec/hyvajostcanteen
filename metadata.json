@@ -3,5 +3,8 @@
   "description": "An application for managing canteen coupons for both admins and users. Admins can issue coupons and view reports, while users can view and redeem their coupons.",
   "requestFramePermissions": [
     "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
   ]
 }

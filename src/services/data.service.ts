@@ -41,6 +41,7 @@ export class DataService implements OnDestroy {
   private pendingMealRequestsChannel?: any;
   private menusChannel?: any;
   private punchEventsChannel?: any;
+  private employeesChannel?: any;
 
   // Local state (signals)
   private _employees = signal<Employee[]>([]);
@@ -130,52 +131,96 @@ export class DataService implements OnDestroy {
   constructor() {
     this.loadFromDatabase();
 
-    // Setup realtime listeners
-    this.setupRealtimeCouponsListener();
-    this.setupRealtimeQrCardsListener();
-    this.setupRealtimeGuestCouponRequestsListener();
-    this.setupRealtimeNotificationsListener();
-    this.setupRealtimePendingMealRequestsListener();
-    this.setupRealtimeMenusListener();
+    // 🔁 Punch Events remain unchanged as they are critical for live history
     this.setupRealtimePunchEventsListener();
   }
 
+  /**
+   * Initializes or re-initializes realtime listeners based on the logged-in user.
+   * This is called after login or when the app starts with a restored session.
+   */
+  initializeRealtimeListeners(user: Employee | Contractor | null) {
+    // 1. Clean up existing channels
+    this.cleanupRealtimeChannels();
+
+    if (!user) return;
+
+    // 2. Setup filtered listeners based on role
+    const isEmployee = 'role' in user;
+    const userId = user.id;
+
+    if (isEmployee) {
+      const emp = user as Employee;
+      const role = emp.role;
+
+      // --- Coupons ---
+      if (role === 'canteen manager' || role === 'admin') {
+        // Manager/Admin see all redemptions in realtime for dashboard
+        this.setupRealtimeCouponsListener();
+      } else {
+        // Regular employees only see their own coupons
+        this.setupRealtimeCouponsListener(`employee_id=eq.${userId}`);
+      }
+
+      // --- Guest Coupon Requests ---
+      if (role === 'admin') {
+        this.setupRealtimeGuestCouponRequestsListener(`status=eq.pending_admin`);
+      } else if (role === 'canteen manager') {
+        this.setupRealtimeGuestCouponRequestsListener(`employee_id=eq.${userId}`);
+      } else {
+        this.setupRealtimeGuestCouponRequestsListener(`employee_id=eq.${userId}`);
+      }
+
+      // --- Pending Meal Requests ---
+      if (role === 'canteen manager' || role === 'admin') {
+        this.setupRealtimePendingMealRequestsListener(`status=eq.pending`);
+      } else {
+        this.setupRealtimePendingMealRequestsListener(`employee_id=eq.${userId}`);
+      }
+
+      // --- Notifications ---
+      this.setupRealtimeNotificationsListener(`employee_id=eq.${userId}`);
+
+      // --- Employees (Self only for non-admins) ---
+      if (role !== 'admin') {
+        this.setupRealtimeEmployeesListener(`id=eq.${userId}`);
+      }
+    } else {
+      // Contractor (rarely uses these but for completeness)
+      this.setupRealtimeCouponsListener(`contractor_id=eq.${userId}`);
+    }
+  }
+
+  private cleanupRealtimeChannels() {
+    const channels = [
+      this.couponsChannel,
+      this.guestCouponRequestsChannel,
+      this.notificationsChannel,
+      this.pendingMealRequestsChannel,
+      this.menusChannel,
+      this.employeesChannel
+    ];
+
+    channels.forEach(ch => {
+      if (ch) {
+        try {
+          ch.unsubscribe();
+        } catch (e) {
+          console.warn('Error unsubscribing channel during cleanup:', e);
+        }
+      }
+    });
+
+    this.couponsChannel = undefined;
+    this.guestCouponRequestsChannel = undefined;
+    this.notificationsChannel = undefined;
+    this.pendingMealRequestsChannel = undefined;
+    this.menusChannel = undefined;
+    this.employeesChannel = undefined;
+  }
+
   ngOnDestroy() {
-    if (this.couponsChannel) {
-      try {
-        this.couponsChannel.unsubscribe();
-      } catch (e) {
-        console.warn('Error unsubscribing coupons channel on destroy:', e);
-      }
-    }
-    if (this.guestCouponRequestsChannel) {
-      try {
-        this.guestCouponRequestsChannel.unsubscribe();
-      } catch (e) {
-        console.warn('Error unsubscribing guest coupon requests channel on destroy:', e);
-      }
-    }
-    if (this.notificationsChannel) {
-      try {
-        this.notificationsChannel.unsubscribe();
-      } catch (e) {
-        console.warn('Error unsubscribing notifications channel on destroy:', e);
-      }
-    }
-    if (this.pendingMealRequestsChannel) {
-      try {
-        this.pendingMealRequestsChannel.unsubscribe();
-      } catch (e) {
-        console.warn('Error unsubscribing pending meal requests channel on destroy:', e);
-      }
-    }
-    if (this.menusChannel) {
-      try {
-        this.menusChannel.unsubscribe();
-      } catch (e) {
-        console.warn('Error unsubscribing menus channel on destroy:', e);
-      }
-    }
+    this.cleanupRealtimeChannels();
     if (this.punchEventsChannel) {
       try {
         this.punchEventsChannel.unsubscribe();
@@ -322,7 +367,75 @@ export class DataService implements OnDestroy {
       console.error(`Failed to delete coupon ${couponId} from Supabase:`, err);
     }
   }
-  private async setupRealtimeCouponsListener() {
+
+  async refreshEmployees() {
+    try {
+      const employees = await this.employeeRepository.getAll();
+      this._employees.set(employees);
+    } catch (err) {
+      console.error('Failed to refresh employees:', err);
+    }
+  }
+
+  async refreshContractors() {
+    try {
+      const contractors = await this.contractorRepository.getAll();
+      this._contractors.set(contractors);
+    } catch (err) {
+      console.error('Failed to refresh contractors:', err);
+    }
+  }
+
+  async refreshMenus() {
+    try {
+      const menus = await this.menuRepository.getAll();
+      this._menus.set(menus);
+    } catch (err) {
+      console.error('Failed to refresh menus:', err);
+    }
+  }
+
+  async refreshQrCards() {
+    try {
+      const cards = await this.qrCardRepository.getAll();
+      this._qrCards.set(cards);
+    } catch (err) {
+      console.error('Failed to refresh QR cards:', err);
+    }
+  }
+
+  private async setupRealtimeEmployeesListener(filter?: string) {
+    try {
+      this.employeesChannel = this.supabaseService.realtime('employees', '*', (payload) => {
+        const eventType = payload.eventType;
+        if (eventType === 'INSERT' || eventType === 'UPDATE') {
+          const row = payload.new;
+          if (row) {
+            const mapped = this.employeeRepository.mapToEmployee(row);
+            this._employees.update(list => {
+              const idx = list.findIndex(e => e.id === mapped.id);
+              if (idx !== -1) {
+                const copy = [...list];
+                copy[idx] = mapped;
+                return copy;
+              } else {
+                return [...list, mapped];
+              }
+            });
+          }
+        } else if (eventType === 'DELETE') {
+          const oldRow = payload.old;
+          if (oldRow && oldRow.id) {
+            this._employees.update(list => list.filter(e => e.id !== oldRow.id));
+          }
+        }
+      }, filter);
+    } catch (err) {
+      console.error('Failed to set up Supabase Realtime listener for employees:', err);
+    }
+  }
+
+  private async setupRealtimeCouponsListener(filter?: string) {
     try {
       if (this.couponsChannel) {
         try {
@@ -342,6 +455,9 @@ export class DataService implements OnDestroy {
           if (row) {
             if (row.employee_id) {
               this.refreshEmployeeCoupons(Number(row.employee_id));
+            } else if (row.contractor_id) {
+               // Handle contractor coupons too if needed
+               this.loadFromDatabase(); // Fallback for contractors
             }
           }
         } else if (eventType === 'DELETE') {
@@ -352,9 +468,9 @@ export class DataService implements OnDestroy {
             );
           }
         }
-      });
+      }, filter);
 
-      console.log('Successfully configured Supabase Realtime listener for coupons.');
+      console.log('Successfully configured Supabase Realtime listener for coupons.', filter ? `with filter: ${filter}` : 'no filter');
     } catch (err) {
       console.error('Failed to set up Supabase Realtime listener for coupons:', err);
     }
@@ -379,22 +495,7 @@ export class DataService implements OnDestroy {
     }
   }
 
-  private setupRealtimeQrCardsListener() {
-    try {
-      this.supabaseService.realtime('qr_cards', '*', async (payload) => {
-        console.log('Supabase Realtime QR Card Event received:', payload.eventType);
-        try {
-          const cards = await this.qrCardRepository.getAll();
-          this._qrCards.set(cards);
-        } catch (err) {
-          console.error('Failed to reload QR cards in realtime listener:', err);
-        }
-      });
-    } catch (err) {
-      console.error('Failed to set up Supabase Realtime listener for qr_cards:', err);
-    }
-  }
-  private setupRealtimeGuestCouponRequestsListener() {
+  private setupRealtimeGuestCouponRequestsListener(filter?: string) {
     try {
       if (this.guestCouponRequestsChannel) {
         try {
@@ -436,14 +537,14 @@ export class DataService implements OnDestroy {
             );
           }
         }
-      });
+      }, filter);
 
-      console.log('Successfully configured Supabase Realtime listener for guest coupon requests.');
+      console.log('Successfully configured Supabase Realtime listener for guest coupon requests.', filter ? `with filter: ${filter}` : 'no filter');
     } catch (err) {
       console.error('Failed to set up Supabase Realtime listener for guest coupon requests:', err);
     }
   }
-  private setupRealtimeNotificationsListener() {
+  private setupRealtimeNotificationsListener(filter?: string) {
     try {
       if (this.notificationsChannel) {
         try {
@@ -485,14 +586,14 @@ export class DataService implements OnDestroy {
             );
           }
         }
-      });
+      }, filter);
 
-      console.log('Successfully configured Supabase Realtime listener for notifications.');
+      console.log('Successfully configured Supabase Realtime listener for notifications.', filter ? `with filter: ${filter}` : 'no filter');
     } catch (err) {
       console.error('Failed to set up Supabase Realtime listener for notifications:', err);
     }
   }
-  private setupRealtimePendingMealRequestsListener() {
+  private setupRealtimePendingMealRequestsListener(filter?: string) {
     try {
       if (this.pendingMealRequestsChannel) {
         try {
@@ -534,66 +635,19 @@ export class DataService implements OnDestroy {
             );
           }
         }
-      });
+      }, filter);
 
-      console.log('Successfully configured Supabase Realtime listener for pending meal requests.');
+      console.log('Successfully configured Supabase Realtime listener for pending meal requests.', filter ? `with filter: ${filter}` : 'no filter');
     } catch (err) {
       console.error('Failed to set up Supabase Realtime listener for pending meal requests:', err);
     }
   }
 
-  private setupRealtimeMenusListener() {
-    try {
-      if (this.menusChannel) {
-        try {
-          this.menusChannel.unsubscribe();
-        } catch (e) {
-          console.warn('Error unsubscribing from existing menus channel:', e);
-        }
-        this.menusChannel = undefined;
-      }
+  // 🔁 setupRealtimeMenusListener is removed as per optimization requirements.
+  // Menus rarely change and will be refreshed manually when updated.
 
-      this.menusChannel = this.supabaseService.realtime('menus', '*', (payload) => {
-        console.log('Supabase Realtime Menu Event received:', payload.eventType, payload);
-        const eventType = payload.eventType;
-
-        if (eventType === 'INSERT' || eventType === 'UPDATE') {
-          const row = payload.new;
-          if (row) {
-            const mapped = this.menuRepository.mapToDailyMenu(row);
-            this._menus.update((list) => {
-              const idx = list.findIndex((m) => m.id === mapped.id);
-              if (idx !== -1) {
-                const existing = list[idx];
-                if (JSON.stringify(existing) === JSON.stringify(mapped)) {
-                  return list;
-                }
-                const copy = [...list];
-                copy[idx] = mapped;
-                return copy;
-              } else {
-                return [...list, mapped];
-              }
-            });
-          }
-        } else if (eventType === 'DELETE') {
-          const oldRow = payload.old;
-          if (oldRow && oldRow.id) {
-            this._menus.update((list) =>
-              list.filter((m) => m.id !== oldRow.id)
-            );
-          }
-        }
-      });
-
-      console.log('Successfully configured Supabase Realtime listener for menus.');
-    } catch (err) {
-      console.error('Failed to set up Supabase Realtime listener for menus:', err);
-    }
-  }
-
-    // 🔁 NEW: punchEvents वर real-time listener – device bridge साठी
-    private async setupRealtimePunchEventsListener() {
+  // 🔁 NEW: punchEvents वर real-time listener – device bridge साठी
+  private async setupRealtimePunchEventsListener() {
       try {
         if (this.punchEventsChannel) {
           try {
@@ -772,6 +826,7 @@ export class DataService implements OnDestroy {
 
     try {
       await this.qrCardRepository.upsertMany(newCards);
+      await this.refreshQrCards();
     } catch (err) {
       console.error('Failed to bulk upsert QR cards to Supabase:', err);
     }
@@ -788,6 +843,7 @@ export class DataService implements OnDestroy {
         employeeId,
         employeeName,
       });
+      await this.refreshQrCards();
     } catch (err) {
       console.error(`Failed to assign QR card ${cardCode} in Supabase:`, err);
     }
@@ -996,6 +1052,7 @@ if (employeeData.assignedQrCard) {
 }
 
 this.syncAllEmployeesToDatabase();
+this.refreshEmployees();
 
 return newEmployee;
   }
@@ -1021,7 +1078,9 @@ return newEmployee;
       this._employees.update(list => [...list, newManager]);
     
       // Sync to Supabase
-      this.employeeRepository.upsert(newManager).catch((err) => {
+      this.employeeRepository.upsert(newManager).then(() => {
+        this.refreshEmployees();
+      }).catch((err) => {
         console.error('Failed to save Canteen Manager to Supabase:', err);
       });
     
@@ -1036,6 +1095,7 @@ return newEmployee;
       )
     );
     this.syncAllEmployeesToDatabase();
+    this.refreshEmployees();
   }
 
   changePassword(employeeId: number, newPassword: string): void {
@@ -1045,6 +1105,7 @@ return newEmployee;
       )
     );
     this.syncAllEmployeesToDatabase();
+    this.refreshEmployees();
   }
 
   deleteEmployee(employeeId: number): void {
@@ -1084,6 +1145,7 @@ return newEmployee;
     this.syncAllEmployeesToDatabase();
     this.syncAllCouponsToDatabase(true);
     this.syncAllNotificationsToDatabase();
+    this.refreshEmployees();
   }
 
   toggleEmployeeStatus(employeeId: number): void {
@@ -1097,6 +1159,7 @@ return newEmployee;
       })
     );
     this.syncAllEmployeesToDatabase();
+    this.refreshEmployees();
   }
 
   // =========================
@@ -1119,6 +1182,7 @@ return newEmployee;
     };
     this._contractors.update((contractors) => [...contractors, newContractor]);
     this.syncAllContractorsToDatabase();
+    this.refreshContractors();
     return newContractor;
   }
 
@@ -1129,6 +1193,7 @@ return newEmployee;
       )
     );
     this.syncAllContractorsToDatabase();
+    this.refreshContractors();
   }
 
   changeContractorPassword(contractorId: number, newPassword: string): void {
@@ -1138,6 +1203,7 @@ return newEmployee;
       )
     );
     this.syncAllContractorsToDatabase();
+    this.refreshContractors();
   }
 
   deleteContractor(contractorId: number): void {
@@ -1169,6 +1235,7 @@ return newEmployee;
     this.syncAllEmployeesToDatabase();
     this.syncAllCouponsToDatabase(true);
     this.syncAllContractorsToDatabase();
+    this.refreshContractors();
   }
 
   // =========================
@@ -1704,7 +1771,6 @@ if (
           }
 
           const punchEventId = `CODE-${Date.now()}`;
-          const notifId = `NOTIF-${Date.now()}`;
           const successMsg = `Coupon redeemed successfully for ${employee?.name}.`;
 
           const rpcResult = await this.supabaseService.rpc('redeem_coupon_atomic', {
@@ -1712,7 +1778,7 @@ if (
             p_employee_id: employee?.id || null,
             p_meal_type: p_meal_type,
             p_punch_event_id: punchEventId,
-            p_notif_id: notifId,
+            p_notif_id: null,
             p_success_message: successMsg
           });
 
@@ -2030,7 +2096,6 @@ if (
 
       if (isSupabaseConfigured()) {
         const successMsg = `${availableCoupon.couponType} coupon redeemed for ${employee.name}`;
-        const notifId = `NOTIF-${Date.now()}`;
 
         try {
           const rpcResult = await this.supabaseService.rpc('redeem_coupon_atomic', {
@@ -2038,7 +2103,7 @@ if (
             p_employee_id: employee.id,
             p_meal_type: mealWindow,
             p_punch_event_id: punchEventId,
-            p_notif_id: notifId,
+            p_notif_id: null,
             p_success_message: successMsg
           });
 
@@ -2346,25 +2411,8 @@ if (
     // Add to local state
     this._guestCouponRequests.update((reqs) => [newRequest, ...reqs]);
 
-    // Notify all admins
-    const admins = this._employees().filter((e) => e.role === 'admin');
-    const nowIso = new Date().toISOString();
-
-    const newNotifications: AppNotification[] = admins.map((admin) => ({
-      id: this.generateNotificationId(),
-      employeeId: admin.id,
-      message: `${employeeName} requested a ${couponType} guest pass for ${trimmedGuestName} (${trimmedGuestCompany}).`,
-      type: 'guest_pass_request',
-      isRead: false,
-      createdAt: nowIso,
-      relatedRequestId: requestId,
-      requesterEmployeeId: employeeId,
-    }));
-
-    this._notifications.update((list) => [...newNotifications, ...list]);
-          // Sync to Database
+    // Sync to Database
     this.syncAllGuestCouponRequestsToDatabase();
-    this.syncAllNotificationsToDatabase();
 
     return {
       success: true,
@@ -2473,30 +2521,7 @@ if (
       )
     );
   
-    // Notify Admins
-    const admins =
-      this._employees().filter(
-        e => e.role === 'admin'
-      );
-  
-    const notifications =
-      admins.map(admin => ({
-        id: this.generateNotificationId(),
-        employeeId: admin.id,
-        message:
-          `${request.employeeName} approved guest pass for ${request.guestName}. Please review.`,
-        type: 'guest_pass_request' as const,
-        isRead: false,
-        createdAt: new Date().toISOString(),
-        relatedRequestId: requestId
-      }));
-  
-    this._notifications.update(
-      list => [...notifications, ...list]
-    );
-  
     this.syncAllGuestCouponRequestsToDatabase();
-    this.syncAllNotificationsToDatabase();
   
     return {
       success: true,
@@ -2662,28 +2687,7 @@ if (
     this._guestCouponRequests.update(
       reqs => [newRequest, ...reqs]
     );
-    const admins =
-  this._employees().filter(
-    e => e.role === 'admin'
-  );
 
-const notifications =
-  admins.map(admin => ({
-    id: this.generateNotificationId(),
-    employeeId: admin.id,
-    message:
-      `Canteen Manager requested guest pass for ${guestName} (${guestCompany}) under employee ${employeeName}.`,
-      type: 'guest_pass_request' as const,
-    isRead: false,
-    createdAt: new Date().toISOString(),
-    relatedRequestId: requestId
-  }));
-
-this._notifications.update(
-  list => [...notifications, ...list]
-);
-
-this.syncAllNotificationsToDatabase();
     this.syncAllGuestCouponRequestsToDatabase();
   
     return {
@@ -2768,31 +2772,7 @@ this.syncAllNotificationsToDatabase();
       )
     );
 
-    const rejectionNotif: AppNotification = {
-      id: this.generateNotificationId(),
-      employeeId: request.employeeId,
-      message:
-        `Your guest pass request for ${request.guestName} (${request.guestCompany}) for ${request.couponType} was rejected by Admin.` +
-         (reason ? ` Reason: ${reason}` : ''),
-      type: 'system',
-      isRead: false,
-      createdAt: new Date().toISOString(),
-      relatedRequestId: requestId,
-      requesterEmployeeId: request.employeeId,
-    };
-
-    this._notifications.update((list) => [rejectionNotif, ...list]);
-    this.pushNotificationService.sendToEmployee(
-      request.employeeId,
-      "Guest Pass Rejected",
-      rejectionNotif.message,
-      {
-          notification_type: "guest_pass_rejected"
-      }
-     );
-
     this.syncAllGuestCouponRequestsToDatabase();
-    this.syncAllNotificationsToDatabase();
 
     return {
       success: true,
@@ -2847,12 +2827,6 @@ this.syncAllNotificationsToDatabase();
       this._menus.update((menus) => [...menus, newMenu]);
     }
     this.syncAllMenusToDatabase();
-    this.pushNotificationService.sendToAllEmployees(
-      "Today's Canteen Menu Updated",
-      "Today's canteen menu has been updated. Please check the latest menu.",
-      {
-          notification_type: "menu_updated"
-      }
-  );
+    this.refreshMenus();
   }
 }

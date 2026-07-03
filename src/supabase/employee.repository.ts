@@ -134,7 +134,7 @@ export class EmployeeRepository {
   /**
    * Helper to map a database row structure (snake_case) to the Employee interface
    */
-  private mapToEmployee(row: any): Employee {
+  mapToEmployee(row: any): Employee {
     return {
       id: Number(row.id),
       name: row.name,

@@ -50,6 +50,7 @@ export class AuthService {
       }
 
       this._currentUser.set(employee);
+      this.dataService.initializeRealtimeListeners(employee);
 
       const stored: StoredUser = { type: 'employee', user: employee };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
@@ -64,6 +65,7 @@ export class AuthService {
 
     if (contractor) {
       this._currentUser.set(contractor);
+      this.dataService.initializeRealtimeListeners(contractor);
 
       const stored: StoredUser = { type: 'contractor', user: contractor };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
@@ -82,6 +84,7 @@ export class AuthService {
   // ===========================
   logout() {
     this._currentUser.set(null);
+    this.dataService.initializeRealtimeListeners(null);
     localStorage.removeItem(STORAGE_KEY);
     this.router.navigate(['/login']);
   }
@@ -172,8 +175,10 @@ export class AuthService {
 
       if (parsed.type === 'employee') {
         this._currentUser.set(parsed.user);
+        this.dataService.initializeRealtimeListeners(parsed.user);
       } else if (parsed.type === 'contractor') {
         this._currentUser.set(parsed.user);
+        this.dataService.initializeRealtimeListeners(parsed.user);
       }
     } catch {
       localStorage.removeItem(STORAGE_KEY);
