@@ -106,6 +106,26 @@ export class CouponRepository {
   }
 
   /**
+   * Bulk deletes coupons from Supabase by their IDs
+   */
+  async deleteMany(couponIds: string[]): Promise<void> {
+    if (!isSupabaseConfigured()) {
+      return;
+    }
+    try {
+      if (couponIds.length === 0) return;
+      const { error } = await this.supabaseService.client
+        .from('coupons')
+        .delete()
+        .in('coupon_id', couponIds);
+      if (error) throw error;
+    } catch (err) {
+      console.error('Supabase bulk delete coupons failed:', err);
+      throw err;
+    }
+  }
+
+  /**
    * Deletes any coupons not present in the provided list of active IDs
    */
   async deleteManyNotIn(activeIds: string[]): Promise<void> {

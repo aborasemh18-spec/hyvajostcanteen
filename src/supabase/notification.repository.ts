@@ -85,6 +85,26 @@ export class NotificationRepository {
   }
 
   /**
+   * Bulk deletes notifications from Supabase by their IDs
+   */
+  async deleteMany(notificationIds: string[]): Promise<void> {
+    if (!isSupabaseConfigured()) {
+      return;
+    }
+    try {
+      if (notificationIds.length === 0) return;
+      const { error } = await this.supabaseService.client
+        .from('notifications' as any)
+        .delete()
+        .in('id', notificationIds);
+      if (error) throw error;
+    } catch (err) {
+      console.error('Supabase bulk delete notifications failed:', err);
+      throw err;
+    }
+  }
+
+  /**
    * Delete any notifications not present in the provided list of active IDs
    */
   async deleteManyNotIn(activeIds: string[]): Promise<void> {

@@ -153,6 +153,11 @@ export class DataService implements OnDestroy {
       const emp = user as Employee;
       const role = emp.role;
 
+      // 🔁 Production Optimization: Contractual Employees skip all realtime listeners
+      if (role === 'contractual employee') {
+        return;
+      }
+
       // --- Coupons ---
       if (role === 'canteen manager' || role === 'admin') {
         // Manager/Admin see all redemptions in realtime for dashboard
@@ -166,7 +171,7 @@ export class DataService implements OnDestroy {
       if (role === 'admin') {
         this.setupRealtimeGuestCouponRequestsListener(`status=eq.pending_admin`);
       } else if (role === 'canteen manager') {
-        this.setupRealtimeGuestCouponRequestsListener(`employee_id=eq.${userId}`);
+        this.setupRealtimeGuestCouponRequestsListener();
       } else {
         this.setupRealtimeGuestCouponRequestsListener(`employee_id=eq.${userId}`);
       }
@@ -186,8 +191,8 @@ export class DataService implements OnDestroy {
         this.setupRealtimeEmployeesListener(`id=eq.${userId}`);
       }
     } else {
-      // Contractor (rarely uses these but for completeness)
-      this.setupRealtimeCouponsListener(`contractor_id=eq.${userId}`);
+      // Contractor user (Contractor model) also skips realtime as per optimization
+      return;
     }
   }
 
@@ -255,6 +260,17 @@ export class DataService implements OnDestroy {
   // =========================
 
   private async loadFromDatabase() {
+    const userStr = localStorage.getItem('canteen_user');
+    let currentUserRole: string | null = null;
+    if (userStr) {
+      try {
+        const parsed = JSON.parse(userStr);
+        if (parsed.type === 'employee') {
+          currentUserRole = parsed.user.role;
+        }
+      } catch (e) {}
+    }
+
     try {
       const [
         employees,
@@ -269,7 +285,8 @@ export class DataService implements OnDestroy {
         this.couponRepository.getAll(),
         this.contractorRepository.getAll(),
         this.menuRepository.getAll(),
-        this.notificationRepository.getAll(),
+        // 🔁 Optimization: Skip notifications for contractual employees
+        currentUserRole === 'contractual employee' ? Promise.resolve([]) : this.notificationRepository.getAll(),
         this.guestCouponRequestRepository.getAll(),
         this.pendingMealRequestRepository.getAll(),
       ]);
@@ -344,6 +361,7 @@ export class DataService implements OnDestroy {
       console.error('Error syncing coupons collection to Supabase:', err);
     }
   }
+
   private async updateCouponInDatabase(coupon: Coupon) {
     try {
       await this.couponRepository.upsert(coupon);
@@ -365,6 +383,62 @@ export class DataService implements OnDestroy {
       await this.couponRepository.delete(couponId);
     } catch (err) {
       console.error(`Failed to delete coupon ${couponId} from Supabase:`, err);
+    }
+  }
+
+  private async updateEmployeeInDatabase(employee: Employee) {
+    try {
+      await this.employeeRepository.upsert(employee);
+    } catch (err) {
+      console.error(`Failed to update employee ${employee.id} in Supabase:`, err);
+    }
+  }
+
+  private async updateContractorInDatabase(contractor: Contractor) {
+    try {
+      await this.contractorRepository.upsert(contractor);
+    } catch (err) {
+      console.error(`Failed to update contractor ${contractor.id} in Supabase:`, err);
+    }
+  }
+
+  private async updateMenuInDatabase(menu: DailyMenu) {
+    try {
+      await this.menuRepository.upsert(menu);
+    } catch (err) {
+      console.error(`Failed to update menu ${menu.id} in Supabase:`, err);
+    }
+  }
+
+  private async updateNotificationInDatabase(notification: AppNotification) {
+    try {
+      await this.notificationRepository.upsert(notification);
+    } catch (err) {
+      console.error(`Failed to update notification ${notification.id} in Supabase:`, err);
+    }
+  }
+
+  private async addNotificationToDatabase(notification: AppNotification) {
+    try {
+      await this.notificationRepository.upsert(notification);
+    } catch (err) {
+      console.error(`Failed to add notification ${notification.id} to Supabase:`, err);
+    }
+  }
+
+  private async updateGuestCouponRequestInDatabase(request: GuestCouponRequest) {
+    try {
+      await this.guestCouponRequestRepository.upsert(request);
+    } catch (err) {
+      console.error(`Failed to update guest coupon request ${request.id} in Supabase:`, err);
+    }
+  }
+
+  private async updatePendingMealRequestInDatabase(request: PendingMealRequest) {
+    try {
+      await this.pendingMealRequestRepository.upsert(request);
+    } catch (err) {
+      console.error(`Failed to update pending meal request ${request.requestId} in Supabase:`, err);
     }
   }
 
@@ -1051,10 +1125,11 @@ if (employeeData.assignedQrCard) {
 
 }
 
-this.syncAllEmployeesToDatabase();
-this.refreshEmployees();
+    // 🔁 Optimization: Replacing full sync with incremental add
+    this.employeeRepository.upsert(newEmployee);
+    this.refreshEmployees();
 
-return newEmployee;
+    return newEmployee;
   }
   
     // 🔹 Canteen Manager add helper method
@@ -1094,17 +1169,26 @@ return newEmployee;
         emp.id === updatedEmployeeData.id ? updatedEmployeeData : emp
       )
     );
-    this.syncAllEmployeesToDatabase();
+    // 🔁 Optimization: Replacing full sync with incremental update
+    this.updateEmployeeInDatabase(updatedEmployeeData);
     this.refreshEmployees();
   }
 
   changePassword(employeeId: number, newPassword: string): void {
+    let updatedEmp: Employee | undefined;
     this._employees.update((employees) =>
-      employees.map((emp) =>
-        emp.id === employeeId ? { ...emp, password: newPassword } : emp
-      )
+      employees.map((emp) => {
+        if (emp.id === employeeId) {
+          updatedEmp = { ...emp, password: newPassword };
+          return updatedEmp;
+        }
+        return emp;
+      })
     );
-    this.syncAllEmployeesToDatabase();
+    // 🔁 Optimization: Replacing full sync with incremental update
+    if (updatedEmp) {
+      this.updateEmployeeInDatabase(updatedEmp);
+    }
     this.refreshEmployees();
   }
 
@@ -1129,6 +1213,13 @@ return newEmployee;
         console.error(`Failed to deassign QR card ${cardCode} in Supabase:`, err);
       });
     }
+    const couponIdsToDelete = this._coupons()
+      .filter((c) => c.employeeId === employeeId)
+      .map((c) => c.couponId);
+    const notificationIdsToDelete = this._notifications()
+      .filter((n) => n.employeeId === employeeId)
+      .map((n) => n.id);
+
     // Remove employee
     this._employees.update((employees) =>
       employees.filter((emp) => emp.id !== employeeId)
@@ -1142,23 +1233,35 @@ return newEmployee;
       notifications.filter((n) => n.employeeId !== employeeId)
     );
 
-    this.syncAllEmployeesToDatabase();
-    this.syncAllCouponsToDatabase(true);
-    this.syncAllNotificationsToDatabase();
-    this.refreshEmployees();
+    // 🔁 Optimization: Using repository directly for incremental deletions
+    this.employeeRepository.delete(employeeId).then(() => {
+      this.refreshEmployees();
+    });
+    
+    if (couponIdsToDelete.length > 0) {
+      this.couponRepository.deleteMany(couponIdsToDelete);
+    }
+    if (notificationIdsToDelete.length > 0) {
+      this.notificationRepository.deleteMany(notificationIdsToDelete);
+    }
   }
 
   toggleEmployeeStatus(employeeId: number): void {
+    let updatedEmp: Employee | undefined;
     this._employees.update((employees) =>
       employees.map((emp) => {
         if (emp.id === employeeId) {
           const newStatus = emp.status === 'active' ? 'deactivated' : 'active';
-          return { ...emp, status: newStatus };
+          updatedEmp = { ...emp, status: newStatus };
+          return updatedEmp;
         }
         return emp;
       })
     );
-    this.syncAllEmployeesToDatabase();
+    // 🔁 Optimization: Replacing full sync with incremental update
+    if (updatedEmp) {
+      this.updateEmployeeInDatabase(updatedEmp);
+    }
     this.refreshEmployees();
   }
 
@@ -1181,7 +1284,8 @@ return newEmployee;
       id: newId,
     };
     this._contractors.update((contractors) => [...contractors, newContractor]);
-    this.syncAllContractorsToDatabase();
+    // 🔁 Optimization: Replacing full sync with incremental add
+    this.contractorRepository.upsert(newContractor);
     this.refreshContractors();
     return newContractor;
   }
@@ -1192,17 +1296,26 @@ return newEmployee;
         c.id === updatedContractorData.id ? updatedContractorData : c
       )
     );
-    this.syncAllContractorsToDatabase();
+    // 🔁 Optimization: Replacing full sync with incremental update
+    this.updateContractorInDatabase(updatedContractorData);
     this.refreshContractors();
   }
 
   changeContractorPassword(contractorId: number, newPassword: string): void {
+    let updatedContractor: Contractor | undefined;
     this._contractors.update((contractors) =>
-      contractors.map((c) =>
-        c.id === contractorId ? { ...c, password: newPassword } : c
-      )
+      contractors.map((c) => {
+        if (c.id === contractorId) {
+          updatedContractor = { ...c, password: newPassword };
+          return updatedContractor;
+        }
+        return c;
+      })
     );
-    this.syncAllContractorsToDatabase();
+    // 🔁 Optimization: Replacing full sync with incremental update
+    if (updatedContractor) {
+      this.updateContractorInDatabase(updatedContractor);
+    }
     this.refreshContractors();
   }
 
@@ -1211,6 +1324,13 @@ return newEmployee;
       (c) => c.id === contractorId
     );
     if (!contractorToDelete) return;
+
+    const couponIdsToDelete = this._coupons()
+      .filter((c) => c.contractorId === contractorId)
+      .map((c) => c.couponId);
+    const employeesToUpdate = this._employees()
+      .filter((emp) => emp.contractor === contractorToDelete.businessName)
+      .map((emp) => ({ ...emp, contractor: undefined }));
 
     // Un-assign contractor from employees
     this._employees.update((employees) =>
@@ -1232,10 +1352,17 @@ return newEmployee;
       contractors.filter((c) => c.id !== contractorId)
     );
 
-    this.syncAllEmployeesToDatabase();
-    this.syncAllCouponsToDatabase(true);
-    this.syncAllContractorsToDatabase();
-    this.refreshContractors();
+    // 🔁 Optimization: Incremental deletions and updates
+    this.contractorRepository.delete(contractorId).then(() => {
+        this.refreshContractors();
+    });
+    
+    if (couponIdsToDelete.length > 0) {
+      this.couponRepository.deleteMany(couponIdsToDelete);
+    }
+    if (employeesToUpdate.length > 0) {
+      this.employeeRepository.upsertMany(employeesToUpdate);
+    }
   }
 
   // =========================
@@ -1258,7 +1385,8 @@ return newEmployee;
     this._coupons.update((coupons) =>
       coupons.filter((c) => c.couponId !== couponId)
     );
-    this.syncAllCouponsToDatabase(true);
+    // 🔁 Optimization: Replacing full sync with incremental delete
+    this.deleteCouponFromDatabase(couponId);
     return {
       success: true,
       message: `Coupon ${couponId} removed successfully.`,
@@ -1403,28 +1531,28 @@ if (
 
   this._pendingMealRequests.update(
     list =>
-      list.map(r =>
-        r.requestId ===
-        pendingRequest.requestId
-          ? {
+      list.map(r => {
+        if (r.requestId === pendingRequest.requestId) {
+          const updated = {
             ...r,
-            status: 'completed',
+            status: 'completed' as any,
             isCouponAdjusted: true,
-            adjustedCouponId:
-              newCoupons[0].couponId,
-            adjustmentDate:
-              new Date().toISOString()
-          }
-          : r
-      )
+            adjustedCouponId: newCoupons[0].couponId,
+            adjustmentDate: new Date().toISOString()
+          };
+          // 🔁 Optimization: Incremental update for pending meal request
+          this.updatePendingMealRequestInDatabase(updated);
+          return updated;
+        }
+        return r;
+      })
   );
-
-  this.syncAllPendingMealRequestsToDatabase();
 
 }
     this._coupons.update((coupons) => [...coupons, ...newCoupons]);
 
-    await this.syncAllCouponsToDatabase();
+    // 🔁 Optimization: Replacing full sync with incremental upsertMany for new coupons
+    await this.couponRepository.upsertMany(newCoupons);
 
     this.emailService.sendCouponNotification(
       employee,
@@ -1453,7 +1581,8 @@ if (
           couponType: couponType
       }
     );
-    this.syncAllNotificationsToDatabase();
+    // 🔁 Optimization: Replacing full sync with incremental add
+    this.addNotificationToDatabase(newNotification);
 
     // Fetch the employee's fcm_token from Supabase
     let fcmToken: string | null = null;
@@ -1547,7 +1676,8 @@ if (
     }
 
     this._coupons.update((coupons) => [...coupons, ...newCoupons]);
-    this.syncAllCouponsToDatabase();
+    // 🔁 Optimization: Replacing full sync with incremental upsertMany for new coupons
+    this.couponRepository.upsertMany(newCoupons);
 
     return {
       success: true,
@@ -1595,6 +1725,16 @@ if (
       })
     );
 
+    // 🔁 Optimization: No notification for contractual employees
+    if (employee.role === 'contractual employee') {
+      // 🔁 Optimization: Replacing full sync with incremental upsertMany for assigned coupons
+      this.couponRepository.upsertMany(couponsToAssign);
+      return {
+        success: true,
+        message: `${quantity} ${couponType} coupons assigned successfully to ${employee.name}.`,
+      };
+    }
+
     const newNotification: AppNotification = {
       id: this.generateNotificationId(),
       employeeId: employeeId,
@@ -1608,8 +1748,9 @@ if (
       ...notifications,
     ]);
 
-    this.syncAllCouponsToDatabase();
-    this.syncAllNotificationsToDatabase();
+    // 🔁 Optimization: Replacing full sync with incremental updates
+    this.couponRepository.upsertMany(couponsToAssign);
+    this.addNotificationToDatabase(newNotification);
 
     return {
       success: true,
@@ -1863,18 +2004,19 @@ if (
       const successMessage = `GUEST_PASS_REDEEMED|${guestName}|${guestCompany}|${hostName}|${couponType}`;
       const displayMessage = `Guest Pass Redeemed for ${guestName} (${guestCompany}) (requested by ${hostName}).`;
 
+      const updatedCoupon = {
+        ...couponToRedeem,
+        status: 'redeemed' as const,
+        redeemDate: new Date().toISOString(),
+      };
+
       this._coupons.update((coupons) =>
         coupons.map((c) =>
-          c.couponId === couponToRedeem.couponId
-            ? {
-                ...c,
-                status: 'redeemed',
-                redeemDate: new Date().toISOString(),
-              }
-            : c
+          c.couponId === couponToRedeem.couponId ? updatedCoupon : c
         )
       );
-      this.syncAllCouponsToDatabase();
+      // 🔁 Optimization: Replacing full sync with incremental update
+      this.updateCouponInDatabase(updatedCoupon);
 
       // Update Guest Coupon Request status to redeemed
       const requestToUpdate = this._guestCouponRequests().find(r => r.generatedCouponId === couponToRedeem.couponId);
@@ -1887,7 +2029,8 @@ if (
         this._guestCouponRequests.update(reqs => 
           reqs.map(r => r.id === updatedRequest.id ? updatedRequest : r)
         );
-        this.syncAllGuestCouponRequestsToDatabase();
+        // 🔁 Optimization: Replacing full sync with incremental update
+        this.updateGuestCouponRequestInDatabase(updatedRequest);
       }
 
       // Record punch event
@@ -1926,18 +2069,19 @@ if (
     }
 
     // Redeem normal employee coupon
+    const updatedCoupon = {
+      ...couponToRedeem,
+      status: 'redeemed' as const,
+      redeemDate: new Date().toISOString(),
+    };
+
     this._coupons.update((coupons) =>
       coupons.map((c) =>
-        c.couponId === couponToRedeem.couponId
-          ? {
-              ...c,
-              status: 'redeemed',
-              redeemDate: new Date().toISOString(),
-            }
-          : c
+        c.couponId === couponToRedeem.couponId ? updatedCoupon : c
       )
     );
-    this.syncAllCouponsToDatabase();
+    // 🔁 Optimization: Replacing full sync with incremental update
+    this.updateCouponInDatabase(updatedCoupon);
 
     return {
       success: true,
@@ -2264,6 +2408,14 @@ if (
 
     const couponsBeforeLength = allCoupons.length;
 
+    const couponsToDelete = allCoupons.filter((coupon) => {
+      const isFromLastBatch =
+        coupon.employeeId === employeeId &&
+        coupon.status === 'issued' &&
+        coupon.dateIssued === mostRecentDate;
+      return isFromLastBatch;
+    });
+
     const couponsAfter = allCoupons.filter((coupon) => {
       const isFromLastBatch =
         coupon.employeeId === employeeId &&
@@ -2276,7 +2428,8 @@ if (
 
     if (removedCount > 0) {
       this._coupons.set(couponsAfter);
-      this.syncAllCouponsToDatabase(true);
+      // 🔁 Optimization: Replacing full sync with incremental deleteMany
+      this.couponRepository.deleteMany(couponsToDelete.map(c => c.couponId));
       return {
         success: true,
         message: `Successfully removed the last batch of ${removedCount} coupon(s).`,
@@ -2322,6 +2475,14 @@ if (
     const couponsBeforeLength =
       allCoupons.length;
   
+    const couponsToDelete = allCoupons.filter((coupon) => {
+      const isFromLastBatch =
+        coupon.contractorId === contractorId &&
+        coupon.status === 'issued' &&
+        coupon.dateIssued === mostRecentDate;
+      return isFromLastBatch;
+    });
+
     const couponsAfter =
       allCoupons.filter((coupon) => {
   
@@ -2342,7 +2503,8 @@ if (
   
       this._coupons.set(couponsAfter);
   
-      this.syncAllCouponsToDatabase(true);
+      // 🔁 Optimization: Replacing full sync with incremental deleteMany
+      this.couponRepository.deleteMany(couponsToDelete.map(c => c.couponId));
   
       return {
         success: true,
@@ -2411,8 +2573,8 @@ if (
     // Add to local state
     this._guestCouponRequests.update((reqs) => [newRequest, ...reqs]);
 
-    // Sync to Database
-    this.syncAllGuestCouponRequestsToDatabase();
+    // 🔁 Optimization: Replacing full sync with incremental add
+    this.guestCouponRequestRepository.upsert(newRequest);
 
     return {
       success: true,
@@ -2473,7 +2635,8 @@ if (
     this._pendingMealRequests.update(
       list => [newRequest, ...list]
     );
-    this.syncAllPendingMealRequestsToDatabase();
+    // 🔁 Optimization: Replacing full sync with incremental add
+    this.pendingMealRequestRepository.upsert(newRequest);
   
     return {
       success: true,
@@ -2508,20 +2671,26 @@ if (
       };
     }
   
+    let updatedRequest: GuestCouponRequest | undefined;
     this._guestCouponRequests.update(reqs =>
-      reqs.map(r =>
-        r.id === requestId
-          ? {
-              ...r,
-              status: 'pending_admin',
-              employeeDecisionDate: new Date().toISOString(),
-              employeeApprovedBy: employeeId
-            }
-          : r
-      )
+      reqs.map(r => {
+        if (r.id === requestId) {
+          updatedRequest = {
+            ...r,
+            status: 'pending_admin',
+            employeeDecisionDate: new Date().toISOString(),
+            employeeApprovedBy: employeeId
+          };
+          return updatedRequest;
+        }
+        return r;
+      })
     );
   
-    this.syncAllGuestCouponRequestsToDatabase();
+    // 🔁 Optimization: Replacing full sync with incremental update
+    if (updatedRequest) {
+      this.updateGuestCouponRequestInDatabase(updatedRequest);
+    }
   
     return {
       success: true,
@@ -2546,21 +2715,27 @@ if (
     }
     if (request.requestedBy === 'canteen_manager') {
 
+      let updatedRequest: GuestCouponRequest | undefined;
       this._guestCouponRequests.update((reqs) =>
-        reqs.map((r) =>
-          r.id === requestId
-            ? {
+        reqs.map((r) => {
+          if (r.id === requestId) {
+            updatedRequest = {
               ...r,
               status: 'redeemed',
               servedDate: new Date().toISOString(),
               decisionDate: new Date().toISOString(),
               adminId
-            }
-            : r
-        )
+            };
+            return updatedRequest;
+          }
+          return r;
+        })
       );
     
-      this.syncAllGuestCouponRequestsToDatabase();
+      // 🔁 Optimization: Replacing full sync with incremental update
+      if (updatedRequest) {
+        this.updateGuestCouponRequestInDatabase(updatedRequest);
+      }
 
       const hostEmployee = this._employees().find(e => e.id === request.employeeId);
       const hostName = hostEmployee?.name || 'Unknown';
@@ -2629,31 +2804,55 @@ if (
     );
 
     // Notify requesting employee
-    const approvalNotif: AppNotification = {
-      id: this.generateNotificationId(),
-      employeeId: request.employeeId,
-      message: `Your guest pass request for ${request.guestName} (${request.guestCompany}) for ${request.couponType} has been approved. Coupon code: ${guestCoupon.redemptionCode}.`,
-      type: 'system',
-      isRead: false,
-      createdAt: new Date().toISOString(),
-      relatedRequestId: requestId,
-      relatedCouponId: guestCoupon.couponId,
-      requesterEmployeeId: request.employeeId,
-    };
+    const requestingEmployee = this._employees().find(e => e.id === request.employeeId);
+    if (requestingEmployee?.role !== 'contractual employee') {
+      const approvalNotif: AppNotification = {
+        id: this.generateNotificationId(),
+        employeeId: request.employeeId,
+        message: `Your guest pass request for ${request.guestName} (${request.guestCompany}) for ${request.couponType} has been approved. Coupon code: ${guestCoupon.redemptionCode}.`,
+        type: 'system',
+        isRead: false,
+        createdAt: new Date().toISOString(),
+        relatedRequestId: requestId,
+        relatedCouponId: guestCoupon.couponId,
+        requesterEmployeeId: request.employeeId,
+      };
 
-    this._notifications.update((list) => [approvalNotif, ...list]);
-    this.pushNotificationService.sendToEmployee(
-      request.employeeId,
-      "Guest Pass Approved",
-      approvalNotif.message,
-      {
-          notification_type: "guest_pass_approved"
-      }
+      this._notifications.update((list) => [approvalNotif, ...list]);
+      this.pushNotificationService.sendToEmployee(
+        request.employeeId,
+        "Guest Pass Approved",
+        approvalNotif.message,
+        {
+            notification_type: "guest_pass_approved"
+        }
+      );
+      // 🔁 Optimization: Replacing full sync with incremental add
+      this.addNotificationToDatabase(approvalNotif);
+    }
+
+    // 🔁 Optimization: Replacing full sync with incremental updates
+    this.couponRepository.upsert(guestCoupon);
+    
+    let finalRequest: GuestCouponRequest | undefined;
+    this._guestCouponRequests.update((reqs) =>
+      reqs.map((r) => {
+        if (r.id === requestId) {
+          finalRequest = {
+            ...r,
+            status: 'approved',
+            decisionDate: new Date().toISOString(),
+            adminId,
+            generatedCouponId: guestCoupon.couponId,
+          };
+          return finalRequest;
+        }
+        return r;
+      })
     );
-
-    this.syncAllCouponsToDatabase();
-    this.syncAllGuestCouponRequestsToDatabase();
-    this.syncAllNotificationsToDatabase();
+    if (finalRequest) {
+      this.updateGuestCouponRequestInDatabase(finalRequest);
+    }
 
     return {
       success: true,
@@ -2688,7 +2887,8 @@ if (
       reqs => [newRequest, ...reqs]
     );
 
-    this.syncAllGuestCouponRequestsToDatabase();
+    // 🔁 Optimization: Replacing full sync with incremental add
+    this.guestCouponRequestRepository.upsert(newRequest);
   
     return {
       success: true,
@@ -2721,21 +2921,27 @@ if (
       };
     }
   
+    let updatedRequest: GuestCouponRequest | undefined;
     this._guestCouponRequests.update(reqs =>
-      reqs.map(r =>
-        r.id === requestId
-          ? {
-              ...r,
-              status: 'rejected',
-              employeeDecisionDate: new Date().toISOString(),
-              employeeApprovedBy: employeeId,
-              employeeRejectedReason: reason
-            }
-          : r
-      )
+      reqs.map(r => {
+        if (r.id === requestId) {
+          updatedRequest = {
+            ...r,
+            status: 'rejected',
+            employeeDecisionDate: new Date().toISOString(),
+            employeeApprovedBy: employeeId,
+            employeeRejectedReason: reason
+          };
+          return updatedRequest;
+        }
+        return r;
+      })
     );
   
-    this.syncAllGuestCouponRequestsToDatabase();
+    // 🔁 Optimization: Replacing full sync with incremental update
+    if (updatedRequest) {
+      this.updateGuestCouponRequestInDatabase(updatedRequest);
+    }
   
     return {
       success: true,
@@ -2758,21 +2964,27 @@ if (
       return { success: false, message: 'This request is already processed.' };
     }
 
+    let updatedRequest: GuestCouponRequest | undefined;
     this._guestCouponRequests.update((reqs) =>
-      reqs.map((r) =>
-        r.id === requestId
-          ? {
+      reqs.map((r) => {
+        if (r.id === requestId) {
+          updatedRequest = {
               ...r,
               status: 'rejected',
               decisionDate: new Date().toISOString(),
               adminId,
               rejectionReason: reason,
-            }
-          : r
-      )
+            };
+          return updatedRequest;
+        }
+        return r;
+      })
     );
 
-    this.syncAllGuestCouponRequestsToDatabase();
+    // 🔁 Optimization: Replacing full sync with incremental update
+    if (updatedRequest) {
+      this.updateGuestCouponRequestInDatabase(updatedRequest);
+    }
 
     return {
       success: true,
@@ -2785,21 +2997,36 @@ if (
   // =========================
 
   markNotificationAsRead(notificationId: string) {
+    let updatedNotification: AppNotification | undefined;
     this._notifications.update((notifications) =>
-      notifications.map((n) =>
-        n.id === notificationId ? { ...n, isRead: true } : n
-      )
+      notifications.map((n) => {
+        if (n.id === notificationId) {
+          updatedNotification = { ...n, isRead: true };
+          return updatedNotification;
+        }
+        return n;
+      })
     );
-    this.syncAllNotificationsToDatabase();
+    // 🔁 Optimization: Replacing full sync with incremental update
+    if (updatedNotification) {
+      this.updateNotificationInDatabase(updatedNotification);
+    }
   }
 
   markAllNotificationsAsRead(employeeId: number) {
+    const notificationsToUpdate = this._notifications().filter(n => n.employeeId === employeeId && !n.isRead);
+    
     this._notifications.update((notifications) =>
       notifications.map((n) =>
         n.employeeId === employeeId ? { ...n, isRead: true } : n
       )
     );
-    this.syncAllNotificationsToDatabase();
+    
+    // 🔁 Optimization: Replacing full sync with incremental upsertMany
+    if (notificationsToUpdate.length > 0) {
+      const updated = notificationsToUpdate.map(n => ({ ...n, isRead: true }));
+      this.notificationRepository.upsertMany(updated);
+    }
   }
 
   // =========================
@@ -2814,19 +3041,23 @@ if (
     const existingMenu = this._menus().find((m) => m.id === menuData.id);
     const date = new Date(`${menuData.id}T12:00:00Z`); // Use noon to avoid timezone issues
     if (existingMenu) {
+      const updatedMenu: DailyMenu = { ...menuData, date: date.toISOString() };
       this._menus.update((menus) =>
         menus.map((m) =>
-          m.id === menuData.id ? { ...menuData, date: date.toISOString() } : m
+          m.id === menuData.id ? updatedMenu : m
         )
       );
+      // 🔁 Optimization: Replacing full sync with incremental update
+      this.updateMenuInDatabase(updatedMenu);
     } else {
       const newMenu: DailyMenu = {
         ...menuData,
         date: date.toISOString(),
       };
       this._menus.update((menus) => [...menus, newMenu]);
+      // 🔁 Optimization: Replacing full sync with incremental add
+      this.menuRepository.upsert(newMenu);
     }
-    this.syncAllMenusToDatabase();
     this.refreshMenus();
   }
 }

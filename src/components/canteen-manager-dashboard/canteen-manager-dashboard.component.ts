@@ -366,7 +366,6 @@ employees = computed(() =>
       .guestCouponRequests()
       .filter(
         r =>
-          r.requestedBy === 'canteen_manager' &&
           r.status === 'redeemed' &&
           r.servedDate?.startsWith(selected)
       );
