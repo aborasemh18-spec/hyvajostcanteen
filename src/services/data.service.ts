@@ -746,7 +746,7 @@ export class DataService implements OnDestroy {
         );
 
         this._punchEventsHistory.set(initialEvents);
-        this._lastPunchEvent.set(initialEvents[0] || null);
+        this._lastPunchEvent.set(null);
 
         this.punchEventsChannel = this.supabaseService.realtime('punch_events', '*', (payload) => {
           console.log('Supabase Realtime Punch Event received:', payload.eventType, payload);
