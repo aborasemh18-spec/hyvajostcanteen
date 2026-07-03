@@ -1712,6 +1712,7 @@ if (
     }
 
     const couponsToAssign = availableCoupons.slice(0, quantity);
+    const updatedCouponsToAssign = couponsToAssign.map(c => ({ ...c, employeeId: employeeId }));
     const couponIdsToAssign = new Set(
       couponsToAssign.map((c) => c.couponId)
     );
@@ -1728,7 +1729,7 @@ if (
     // 🔁 Optimization: No notification for contractual employees
     if (employee.role === 'contractual employee') {
       // 🔁 Optimization: Replacing full sync with incremental upsertMany for assigned coupons
-      this.couponRepository.upsertMany(couponsToAssign);
+      this.couponRepository.upsertMany(updatedCouponsToAssign);
       return {
         success: true,
         message: `${quantity} ${couponType} coupons assigned successfully to ${employee.name}.`,
@@ -1749,7 +1750,7 @@ if (
     ]);
 
     // 🔁 Optimization: Replacing full sync with incremental updates
-    this.couponRepository.upsertMany(couponsToAssign);
+    this.couponRepository.upsertMany(updatedCouponsToAssign);
     this.addNotificationToDatabase(newNotification);
 
     return {
