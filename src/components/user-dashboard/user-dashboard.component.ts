@@ -238,6 +238,22 @@ export class EmployeeDashboardComponent {
     return this.nextAvailableCoupons().find(c => c.couponType === 'Lunch/Dinner') || null;
   });
 
+  breakfastStats = computed(() => {
+    const all = this.allEmployeeCoupons().filter(c => c.couponType === 'Breakfast');
+    return {
+      total: all.length,
+      used: all.filter(c => c.status === 'redeemed').length
+    };
+  });
+
+  lunchDinnerStats = computed(() => {
+    const all = this.allEmployeeCoupons().filter(c => c.couponType === 'Lunch/Dinner');
+    return {
+      total: all.length,
+      used: all.filter(c => c.status === 'redeemed').length
+    };
+  });
+
   // =========================
   // Redeem coupon modal
   // =========================

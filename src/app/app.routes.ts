@@ -14,6 +14,7 @@ import { CanteenManagerDashboardComponent } from '../components/canteen-manager-
 import { MenuManagementComponent } from '../components/menu-management/menu-management.component';
 import { RedeemCouponComponent } from '../components/redeem-coupon/redeem-coupon.component';
 import { EmployeeDashboardComponent } from '../components/user-dashboard/user-dashboard.component';
+import { CouponHistoryComponent } from '../components/coupon-history/coupon-history.component';
 import { ContractorDashboardComponent } from '../components/contractor-dashboard/contractor-dashboard.component';
 import { authGuard, adminGuard, canteenManagerGuard, contractorGuard } from '../services/auth.guard';
 
@@ -35,6 +36,7 @@ export const routes: Routes = [
   { path: 'canteen-manager/menu', component: MenuManagementComponent, canActivate: [canteenManagerGuard] },
   { path: 'canteen-manager/redeem', component: RedeemCouponComponent, canActivate: [canteenManagerGuard] },
   { path: 'employee', component: EmployeeDashboardComponent, canActivate: [authGuard] },
+  { path: 'employee/coupon-history', component: CouponHistoryComponent, canActivate: [authGuard] },
   { path: 'contractual-employee', component: EmployeeDashboardComponent, canActivate: [authGuard] },
   { path: 'contractor', component: ContractorDashboardComponent, canActivate: [contractorGuard] },
   { path: '', redirectTo: 'login', pathMatch: 'full' },

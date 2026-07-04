@@ -55,7 +55,7 @@
     <div class="col-span-1 md:col-span-2 lg:col-span-1 flex flex-col gap-8">
       
       <!-- Stats block: Total, Remaining, Used (Items 2, 3, 4 on Mobile) -->
-      <div class="grid grid-cols-1 min-[450px]:grid-cols-2 sm:grid-cols-3 gap-6">
+      <div class="hidden md:grid grid-cols-1 min-[450px]:grid-cols-2 sm:grid-cols-3 gap-6">
         <!-- Total Coupons (Item 2) -->
         <div class="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300">
           <div>
@@ -105,6 +105,48 @@
             }
           </div>
         </div>
+      </div>
+
+      <!-- Mobile Coupon Cards -->
+      <div class="md:hidden space-y-4">
+        <!-- Breakfast Card -->
+        <div class="bg-slate-900 rounded-2xl p-6 border border-slate-800 flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <div class="p-3 bg-amber-900/30 rounded-full">
+                    <svg class="w-8 h-8 text-amber-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/><path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/></svg>
+                </div>
+                <div>
+                    <h3 class="text-slate-400 text-sm">Breakfast Coupons</h3>
+                    <p class="text-3xl font-bold text-white">{{ breakfastStats().total }}</p>
+                    <p class="text-slate-400 text-xs">Used: {{ breakfastStats().used }}</p>
+                </div>
+            </div>
+            <svg class="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </div>
+        <!-- Lunch / Dinner Card -->
+        <div class="bg-slate-900 rounded-2xl p-6 border border-slate-800 flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <div class="p-3 bg-emerald-900/30 rounded-full">
+                    <svg class="w-8 h-8 text-emerald-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/><path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/></svg>
+                </div>
+                <div>
+                    <h3 class="text-slate-400 text-sm">Lunch / Dinner Coupons</h3>
+                    <p class="text-3xl font-bold text-white">{{ lunchDinnerStats().total }}</p>
+                    <p class="text-slate-400 text-xs">Used: {{ lunchDinnerStats().used }}</p>
+                </div>
+            </div>
+            <svg class="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </div>
+        <!-- Total Coupon History -->
+        <a routerLink="/employee/coupon-history" class="bg-slate-900 rounded-2xl p-6 border border-slate-800 flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <div class="p-3 bg-slate-800 rounded-full">
+                    <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                </div>
+                <h3 class="text-white font-semibold">Total Coupon History</h3>
+            </div>
+            <svg class="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </a>
       </div>
 
       <!-- Today's Menu (Item 5 on Mobile) -->
