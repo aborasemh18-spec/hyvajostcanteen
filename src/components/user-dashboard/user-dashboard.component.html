@@ -17,6 +17,16 @@
   <!-- Mobile: 1 column vertical stack -->
   <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-[320px_1fr] gap-8 items-start">
     
+    <!-- QR Card for Image Capture (Hidden) -->
+    <div id="qr-card-capture" class="hidden absolute top-[-9999px] left-[-9999px] w-[350px] border-2 border-black rounded-xl p-5 text-center bg-white">
+      <h2 class="text-xl font-bold mb-2">HYVA CANTEEN</h2>
+      @if (employeeQrCodeDataUrl()) {
+        <img [src]="employeeQrCodeDataUrl()" class="w-[220px] h-[220px] mx-auto" />
+      }
+      <p class="font-bold mt-2">{{ currentEmployee()?.name }}</p>
+      <p class="mt-1">Employee ID: {{ currentEmployee()?.id }}</p>
+    </div>
+
     <!-- LEFT COLUMN: Permanent QR & Download (Item 1 on Mobile) -->
     <div class="col-span-1 flex flex-col gap-8">
       <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-300 p-6 text-center">

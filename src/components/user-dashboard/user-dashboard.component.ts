@@ -5,6 +5,7 @@ import { DataService } from '../../services/data.service';
 import { Coupon } from '../../models/coupon.model';
 import * as QRCode from 'qrcode';
 import { GuestCouponRequest } from '../../models/guest-coupon-request.model';
+import { toPng } from 'html-to-image';
 
 @Component({
   selector: 'app-employee-dashboard',
@@ -496,83 +497,23 @@ this.closeApproveGuestPopup();
     return `${year}-${month}-${day} ${hours}:${minutes}`;
   }
   downloadQrCard() {
-
     const employee = this.currentEmployee();
-  
-    if (!employee || !this.employeeQrCodeDataUrl()) {
+    const node = document.getElementById('qr-card-capture');
+
+    if (!employee || !node) {
       return;
     }
-  
-    const win = window.open('', '_blank');
-  
-    if (!win) return;
-  
-    win.document.write(`
-      <html>
-        <head>
-          <title>Employee QR Card</title>
-          <style>
-            body{
-              font-family: Arial;
-              display:flex;
-              justify-content:center;
-              align-items:center;
-              height:100vh;
-              background:#f5f5f5;
-            }
-  
-            .card{
-              width:350px;
-              border:2px solid #000;
-              border-radius:12px;
-              padding:20px;
-              text-align:center;
-              background:white;
-            }
-  
-            .qr{
-              width:220px;
-              height:220px;
-            }
-  
-            h2{
-              margin-bottom:10px;
-            }
-  
-            p{
-              margin:5px;
-            }
-          </style>
-        </head>
-  
-        <body>
-  
-          <div class="card">
-  
-            <h2>HYVA CANTEEN</h2>
-  
-            <img
-              src="${this.employeeQrCodeDataUrl()}"
-              class="qr"
-            />
-  
-            <p><b>${employee.name}</b></p>
-  
-            <p>Employee ID: ${employee.id}</p>
-  
-          </div>
-  
-          <script>
-            window.onload = () => {
-              window.print();
-            };
-          </script>
-  
-        </body>
-      </html>
-    `);
-  
-    win.document.close();
+
+    toPng(node, { cacheBust: true })
+      .then((dataUrl) => {
+        const link = document.createElement('a');
+        link.download = `${employee.id}_QR.png`;
+        link.href = dataUrl;
+        link.click();
+      })
+      .catch((err) => {
+        console.error('Failed to capture QR card', err);
+      });
   }
   async generatePermanentEmployeeQr() {
 
