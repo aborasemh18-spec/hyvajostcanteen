@@ -498,22 +498,48 @@ this.closeApproveGuestPopup();
   }
   downloadQrCard() {
     const employee = this.currentEmployee();
-    const node = document.getElementById('qr-card-capture');
+    const qrDataUrl = this.employeeQrCodeDataUrl();
 
-    if (!employee || !node) {
-      return;
-    }
+    if (!employee || !qrDataUrl) return;
 
-    toPng(node, { cacheBust: true })
-      .then((dataUrl) => {
-        const link = document.createElement('a');
-        link.download = `${employee.id}_QR.png`;
-        link.href = dataUrl;
-        link.click();
-      })
-      .catch((err) => {
-        console.error('Failed to capture QR card', err);
-      });
+    const scale = 4; // High resolution scale factor
+    const canvas = document.createElement('canvas');
+    canvas.width = 350 * scale;
+    canvas.height = 350 * scale;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.scale(scale, scale); // Scale the context
+
+    // Background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, 350, 350); // Original dimensions
+
+    // Header
+    ctx.fillStyle = '#000000';
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('HYVA CANTEEN', 175, 30);
+
+    // QR Code Image
+    const img = new Image();
+    img.src = qrDataUrl;
+    img.onload = () => {
+      ctx.drawImage(img, 65, 50, 220, 220);
+
+      // Name & ID
+      ctx.font = 'bold 16px Arial';
+      ctx.fillStyle = '#000000';
+      ctx.fillText(employee.name || '', 175, 290);
+      ctx.font = '14px Arial';
+      ctx.fillText(`Employee ID: ${employee.id}`, 175, 310);
+
+      // Download
+      const link = document.createElement('a');
+      link.download = `${employee.id}_QR.png`;
+      link.href = canvas.toDataURL('image/png', 1.0); // Highest quality
+      link.click();
+    };
   }
   async generatePermanentEmployeeQr() {
 
