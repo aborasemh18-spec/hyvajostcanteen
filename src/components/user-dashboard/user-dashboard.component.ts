@@ -6,12 +6,13 @@ import { Coupon } from '../../models/coupon.model';
 import * as QRCode from 'qrcode';
 import { GuestCouponRequest } from '../../models/guest-coupon-request.model';
 import { toPng } from 'html-to-image';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-employee-dashboard',
   templateUrl: './user-dashboard.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
 })
 export class EmployeeDashboardComponent {
   constructor() {
