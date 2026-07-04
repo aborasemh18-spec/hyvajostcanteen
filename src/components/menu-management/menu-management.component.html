@@ -1,7 +1,15 @@
-<div class="container mx-auto max-w-4xl">
+<div class="container mx-auto max-w-4xl p-4 md:p-0 bg-slate-950 md:bg-transparent min-h-screen md:min-h-0 text-white md:text-black dark:text-white">
   <div class="flex items-center justify-between mb-6">
-    <h1 class="text-3xl font-bold text-gray-800 dark:text-white">Menu Management</h1>
-    <a routerLink="/canteen-manager" class="inline-flex items-center gap-2 justify-center rounded-md border border-gray-300 dark:border-gray-600 px-4 py-2 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600">
+    <h1 class="text-3xl font-bold md:text-gray-800 md:dark:text-white leading-tight">
+      Menu <br class="md:hidden" /> Management
+    </h1>
+    <!-- Mobile Back Button -->
+    <a routerLink="/canteen-manager" class="md:hidden bg-slate-800/80 text-white px-4 py-2 rounded-xl text-sm flex items-center gap-3 border border-slate-700">
+       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+       <div class="flex flex-col text-left leading-tight"><span class="text-[10px] text-slate-300">Back to</span><span class="font-medium">Dashboard</span></div>
+    </a>
+    <!-- Desktop Back Button -->
+    <a routerLink="/canteen-manager" class="hidden md:inline-flex items-center gap-2 justify-center rounded-md border border-gray-300 dark:border-gray-600 px-4 py-2 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
         <path fill-rule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clip-rule="evenodd" />
       </svg>
@@ -18,29 +26,68 @@
     </div>
   }
 
-  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8">
-    <div class="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4 border-b border-gray-200 dark:border-gray-700 pb-6">
-      <p class="text-lg text-gray-600 dark:text-gray-300">Select a date to view or edit the menu for that day.</p>
-      <div class="flex items-center gap-3">
-        <label for="menu-date" class="font-semibold text-lg text-gray-700 dark:text-gray-300">Menu Date:</label>
-        <input type="date" id="menu-date" [value]="selectedDate()" (input)="onDateChange($event)" class="px-4 py-2 text-lg border border-gray-300 rounded-lg shadow-sm dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white">
+  <!-- Mobile Only: Manage Daily Menu Info Card -->
+  <div class="md:hidden bg-slate-900 rounded-2xl p-4 border border-slate-800 mb-6 flex gap-4 items-center shadow-xl">
+      <div class="w-12 h-12 rounded-full bg-indigo-900 flex-shrink-0 flex items-center justify-center text-indigo-300">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+      </div>
+      <div>
+          <h2 class="font-bold text-white text-base">Manage Daily Menu</h2>
+          <p class="text-slate-400 text-xs mt-1 leading-snug">Select a date to view or edit the menu<br>for that day.</p>
+      </div>
+  </div>
+
+  <div class="md:bg-white md:dark:bg-gray-800 md:rounded-lg md:shadow-xl md:p-8">
+    <div class="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-2 md:gap-4 md:border-b md:border-gray-200 md:dark:border-gray-700 md:pb-6">
+      <p class="hidden md:block text-lg text-gray-600 dark:text-gray-300">Select a date to view or edit the menu for that day.</p>
+      
+      <!-- Date Picker Wrapper -->
+      <div class="flex flex-col md:flex-row md:items-center gap-2 md:gap-3">
+        <label for="menu-date" class="font-bold text-sm md:text-lg text-white md:text-gray-700 md:dark:text-gray-300">Menu Date</label>
+        <div class="relative w-full md:w-auto text-slate-300 md:text-black md:dark:text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none md:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+            <input type="date" id="menu-date" [value]="selectedDate()" (input)="onDateChange($event)" class="w-full md:w-auto pl-12 pr-4 md:px-4 py-3 md:py-2 text-base md:text-lg border border-slate-700 md:border-gray-300 rounded-xl md:rounded-lg shadow-sm bg-slate-900 md:dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white dark:text-white">
+        </div>
       </div>
     </div>
+    
+    <div class="md:hidden border-b border-slate-800 my-6"></div>
 
-    <form [formGroup]="menuForm" (ngSubmit)="saveMenu()" class="space-y-8">
+    <form [formGroup]="menuForm" (ngSubmit)="saveMenu()" class="space-y-6 md:space-y-8">
       <div>
-        <label for="breakfastMenu" class="block text-xl font-semibold text-yellow-700 dark:text-yellow-400 mb-2">Breakfast Menu</label>
+        <label for="breakfastMenu" class="flex items-center gap-3 text-base md:text-xl font-bold text-yellow-500 md:text-yellow-700 md:dark:text-yellow-400 mb-3 md:mb-2">
+           <div class="w-9 h-9 rounded-full bg-yellow-900/30 flex items-center justify-center md:hidden border border-yellow-900/50">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+           </div>
+           Breakfast Menu
+        </label>
         <textarea id="breakfastMenu" formControlName="breakfastMenu" rows="5" placeholder="Enter each menu item on a new line..." 
-                  class="w-full p-3 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-yellow-500"></textarea>
+                  class="w-full p-4 md:p-3 border border-slate-700 md:border-gray-300 rounded-xl md:rounded-lg bg-slate-900 md:bg-transparent md:dark:bg-gray-700 md:dark:border-gray-600 focus:ring-2 focus:ring-yellow-500 text-white md:text-black dark:text-white placeholder-slate-500"></textarea>
+        <p class="mt-2 text-xs text-slate-500 flex items-center gap-1.5 md:hidden">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            Enter each menu item on a new line
+        </p>
       </div>
+
+      <div class="md:hidden border-b border-slate-800 my-6"></div>
 
       <div>
-        <label for="lunchDinnerMenu" class="block text-xl font-semibold text-blue-700 dark:text-blue-400 mb-2">Lunch / Dinner Menu</label>
-        <textarea id="lunchDinnerMenu" formControlName="lunchDinnerMenu" rows="8" placeholder="Enter each menu item on a new line..."
-                  class="w-full p-3 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-blue-500"></textarea>
+        <label for="lunchDinnerMenu" class="flex items-center gap-3 text-base md:text-xl font-bold text-blue-500 md:text-blue-700 md:dark:text-blue-400 mb-3 md:mb-2">
+           <div class="w-9 h-9 rounded-full bg-blue-900/30 flex items-center justify-center md:hidden border border-blue-900/50">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+           </div>
+           Lunch / Dinner Menu
+        </label>
+        <textarea id="lunchDinnerMenu" formControlName="lunchDinnerMenu" rows="5" placeholder="Enter each menu item on a new line..."
+                  class="w-full p-4 md:p-3 border border-slate-700 md:border-gray-300 rounded-xl md:rounded-lg bg-slate-900 md:bg-transparent md:dark:bg-gray-700 md:dark:border-gray-600 focus:ring-2 focus:ring-blue-500 text-white md:text-black dark:text-white placeholder-slate-500"></textarea>
+        <p class="mt-2 text-xs text-slate-500 flex items-center gap-1.5 md:hidden">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            Enter each menu item on a new line
+        </p>
       </div>
 
-      <div class="flex justify-end pt-4">
+      <!-- Desktop Button -->
+      <div class="hidden md:flex justify-end pt-4">
         <button type="submit" class="inline-flex items-center gap-2 justify-center rounded-lg bg-indigo-600 px-8 py-3 text-lg font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
             <path d="M7.5 2.5a.5.5 0 00-1 0v1a.5.5 0 001 0v-1zM6 3.5a.5.5 0 01.5-.5h1a.5.5 0 010 1h-1a.5.5 0 01-.5-.5zM8 3.5a.5.5 0 01.5-.5h1a.5.5 0 010 1h-1a.5.5 0 01-.5-.5zM9.5 2.5a.5.5 0 00-1 0v1a.5.5 0 001 0v-1zM11 3.5a.5.5 0 01.5-.5h1a.5.5 0 010 1h-1a.5.5 0 01-.5-.5zm1.5-.5a.5.5 0 00-1 0v1a.5.5 0 001 0v-1zM4 5.5a1 1 0 011-1h10a1 1 0 011 1v9a1 1 0 01-1 1H5a1 1 0 01-1-1v-9zM5 15h10V6H5v9z" />
@@ -49,6 +96,25 @@
           Save Menu
         </button>
       </div>
+      
+      <!-- Mobile Buttons -->
+      <div class="md:hidden bg-slate-900 rounded-2xl p-5 border border-slate-800 mt-6 shadow-xl">
+        <div class="flex gap-4">
+            <button type="button" (click)="menuForm.reset()" class="flex-1 border border-slate-600 text-white py-3 rounded-xl flex items-center justify-center gap-2 font-semibold hover:bg-slate-800 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                Reset
+            </button>
+            <button type="submit" class="flex-1 bg-green-500 text-white py-3 rounded-xl flex items-center justify-center gap-2 font-semibold hover:bg-green-600 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+                Save Menu
+            </button>
+        </div>
+        <p class="text-center text-[10px] text-green-500 mt-4 flex items-center justify-center gap-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            Changes will be saved for the selected date only
+        </p>
+      </div>
+      
     </form>
   </div>
 </div>
